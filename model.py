@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.neighbors import NearestNeighbors
 
 class Individual:
     def __init__(self,lambdas, num_sensors, sensors_positions) -> None:
@@ -15,11 +16,11 @@ class Individual:
         self.fitness = self.compute_fitness()
 
 
-    def compute_fitness(self):
-        f1 = 
-        f2 = 
-        f3 = 
-        return np.dot(self.lambdas,[f1,f2,f3])
+    # def compute_fitness(self):
+    #     f1 = 
+    #     f2 = 
+    #     f3 = 
+    #     return np.dot(self.lambdas,[f1,f2,f3])
 
     def repair_solution(self):
         
@@ -36,8 +37,15 @@ class Population:
             self.pop.append(Individual(self.lambdas[i], num_sensors, sensors_positions))
 
         self.neighbor = {} # Use KNN/... to find neighbors of each sub-problem
-        def find_neighbor(self):
-
+    def find_neighbor(self):
+        # max value for distance to neighbor
+        X = np.array(self.lambdas)
+        nbrs = NearestNeighbors(n_neighbors=self.neighborhood_size, algorithm='ball_tree').fit(X)
+        distances, indices = nbrs.kneighbors(X)
+        nb = {}
+        for i in range(len(self.lambdas)):
+            nb[i] =list( indices[i])
+        return nb
 
     # Genrate uniformly spread weighted vectors lambda
     def generate_lambdas(self):
@@ -65,4 +73,5 @@ class Population:
     def update_utility(self):
     
 
-pop = Population(5,3)
+pop = Population(5,3,10)
+print(pop.find_neighbor())
