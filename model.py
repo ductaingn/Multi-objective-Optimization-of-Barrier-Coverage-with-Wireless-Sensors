@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.neighbors import NearestNeighbors
 
 class Individual:
     def __init__(self,lambdas, num_sensors, num_sink_nodes, sensors_positions, sink_node_positions) -> None:
@@ -60,7 +61,12 @@ class Population:
 
         self.neighbor = {} # Use KNN/... to find neighbors of each sub-problem
         def find_neighbor(self):
-            return
+            # max value for distance to neighbor
+            X = np.array(self.lambdas)
+            nbrs = NearestNeighbors(n_neighbors=self.neighborhood_size, algorithm='ball_tree').fit(X)
+            distances, indices = nbrs.kneighbors(X)
+            for i in range(len(self.lambdas)):
+                self.neighbor[i] =list( indices[i])
 
     # Genrate uniformly spread weighted vectors lambda 
     def generate_lambdas(self):
