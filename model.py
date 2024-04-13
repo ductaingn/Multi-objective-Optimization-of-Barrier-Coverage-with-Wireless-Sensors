@@ -12,8 +12,8 @@ class Individual:
         
         # Random solution
         activate = np.random.choice([0,1],num_sensors)
-        range = np.random.rand(num_sensors)
-        self.solution = [[activate[i],range[i]] for i in range(num_sensors)]
+        srange = np.random.rand(num_sensors)
+        self.solution = [[activate[i], srange[i]] for i in range(num_sensors)]
         self.repair_solution()
 
         self.fitness = self.compute_fitness(self.solution)
@@ -29,11 +29,13 @@ class Individual:
 
                 nearest_sink_node_distance = 1e9
                 for j in range(self.num_sink_nodes):
+                    # print(self.sensors_positions[i])
+                    # print(self.sink_nodes_positions[j])
                     distance = np.abs((self.sensors_positions[i][0]-self.sink_nodes_positions[j][0])**2 + (self.sensors_positions[i][1]-self.sink_nodes_positions[j][1])**2)
                     nearest_sink_node_distance = min(nearest_sink_node_distance, distance)
             
                 f[2] += nearest_sink_node_distance
-        f[3]/=f[2]
+        f[2]/=f[1]
 
         gte = max([self.lambdas[i]*abs(f[i]-z[i]) for i in range(3)])
         return gte
@@ -57,7 +59,7 @@ class Population:
         self.lambdas = self.generate_lambdas()
         self.pop:list[Individual] = []
         for i in range(self.pop_size):
-            self.pop.append(Individual(self.lambdas[i], num_sensors, sensors_positions, sink_nodes_positions))
+            self.pop.append(Individual(self.lambdas[i], num_sensors, num_sink_node, sensors_positions, sink_nodes_positions))
 
         self.neighbor = {} # Use KNN/... to find neighbors of each sub-problem
         def find_neighbor(self):
@@ -67,6 +69,13 @@ class Population:
             distances, indices = nbrs.kneighbors(X)
             for i in range(len(self.lambdas)):
                 self.neighbor[i] =list( indices[i])
+
+    def __repr__(self) -> str:
+        # print every individual in population
+        res = ""
+        for i in range(self.pop_size):
+            res += f"Solution to Individual {i}: {self.pop[i].solution}\n"
+        return res
 
     # Genrate uniformly spread weighted vectors lambda 
     def generate_lambdas(self):
@@ -85,10 +94,33 @@ class Population:
     
     def selection(self):
         return
+    
+    def forward_local_search(self, k):
+        # find one gene with max range in pop[k].solution
+        max_range = 0
+        max_range_index = 0
+        for i in range(len(self.pop[k].solution)):
+            if self.pop[k].solution[i][1]>max_range:
+                max_range = self.pop[k].solution[i][1]
+                max_range_index = i
+        for i in range(len(self.pop[k].solution)):
+            if i==max_range_index:
+                self.pop[k].solution[i][0] = 1
+            else:
+                self.pop[k].solution[i][0] = 0
 
-    def local_search(self):        
-        return
+        # repair solution
 
+
+    def local_search(self, k):       
+        j = np.random.choice(self.pop_size)
+        if (j < k):
+            for _ in range (k-j):
+                self.forward_local_search(k)
+        else:
+            for _ in range (j-k):
+                self.backward_local_search(k)
+                
     def mutation(self):
         return
 
