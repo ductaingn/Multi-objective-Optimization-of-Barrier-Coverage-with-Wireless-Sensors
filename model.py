@@ -13,8 +13,8 @@ class Individual:
         
         # Random solution
         activate = np.random.choice([0,1],num_sensors)
-        range = np.random.rand(num_sensors)
-        self.solution = [[activate[i],range[i]] for i in range(num_sensors)]
+        srange = np.random.rand(num_sensors)
+        self.solution = [[activate[i], srange[i]] for i in range(num_sensors)]
         self.repair_solution()
 
         self.f = [1e9,1e9,1e9]
@@ -30,11 +30,14 @@ class Individual:
 
                 nearest_sink_node_distance = 1e9
                 for j in range(self.num_sink_nodes):
+                    # print(self.sensors_positions[i])
+                    # print(self.sink_nodes_positions[j])
                     distance = np.abs((self.sensors_positions[i][0]-self.sink_nodes_positions[j][0])**2 + (self.sensors_positions[i][1]-self.sink_nodes_positions[j][1])**2)
                     nearest_sink_node_distance = min(nearest_sink_node_distance, distance)
             
                 f[2] += nearest_sink_node_distance
-        f[3]/=f[2]
+              
+        f[2]/=f[1]
         self.f = f
         gte = max([self.lambdas[i]*abs(f[i]-ideal_point[i]) for i in range(3)])
         return gte
@@ -80,6 +83,13 @@ class Population:
         
         self.neighbor = find_neighbor()
 
+    def __repr__(self) -> str:
+        # print every individual in population
+        res = ""
+        for i in range(self.pop_size):
+            res += f"Solution to Individual {i}: {self.pop[i].solution}\n"
+        return res
+
     # Genrate uniformly spread weighted vectors lambda 
     def generate_lambdas(self):
         sub_problem_lambdas = []
@@ -95,6 +105,28 @@ class Population:
         
         return res
     
+  
+    def forward_local_search(self, k):
+        # find one gene with max range in pop[k].solution
+        max_range = 0
+        max_range_index = 0
+        for i in range(len(self.pop[k].solution)):
+            if self.pop[k].solution[i][1] > max_range:
+                max_range = self.pop[k].solution[i][1]
+                max_range_index = i
+        
+
+        # repair solution
+
+    def local_search(self, k):       
+        j = np.random.choice(self.pop_size)
+        if (j < k):
+            for _ in range (k-j):
+                self.forward_local_search(k)
+        else:
+            for _ in range (j-k):
+                self.backward_local_search(k)
+
     def selection(self, k=16)->list[Individual]:
         indi_index = list(np.random.choice(range[0,self.pop_size],k))
         # k is number of individuals in selection pool
@@ -107,9 +139,6 @@ class Population:
                     indi_index.pop(i)
             k/=2
         return indi_index
-
-    def local_search(self):    
-        return
 
     def update_utility(self, individuals:list[Individual]):
         for indi in individuals:

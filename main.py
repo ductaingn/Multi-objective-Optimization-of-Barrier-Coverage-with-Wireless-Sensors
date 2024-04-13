@@ -6,7 +6,10 @@ if __name__ == "__main__":
     NEIGHBORHOOD_SIZE = 20
     NUM_SENSORS = 1000
     NUM_SINK_NODES = 1
-    sink_nodes_positions = np.random.randn(shape=(NUM_SENSORS,2))
-    sink_nodes_positions = np.random.randn(2)
+    sensor_positions = np.random.randn(NUM_SENSORS,2)
+    sink_nodes_positions = np.random.randn(NUM_SINK_NODES, 2)
 
-    pop = model.Population(POP_SIZE,NEIGHBORHOOD_SIZE,NUM_SENSORS,sink_nodes_positions,NUM_SINK_NODES,sink_nodes_positions)
+    sensor_positions = sensor_positions[sensor_positions[:,0].argsort()]
+    # print(sensor_positions)
+    pop = model.Population(POP_SIZE,NEIGHBORHOOD_SIZE,NUM_SENSORS,sensor_positions,NUM_SINK_NODES,sink_nodes_positions)
+    # print(pop)
