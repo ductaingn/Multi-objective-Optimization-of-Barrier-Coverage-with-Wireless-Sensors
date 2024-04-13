@@ -100,14 +100,10 @@ class Population:
         max_range = 0
         max_range_index = 0
         for i in range(len(self.pop[k].solution)):
-            if self.pop[k].solution[i][1]>max_range:
+            if self.pop[k].solution[i][1] > max_range:
                 max_range = self.pop[k].solution[i][1]
                 max_range_index = i
-        for i in range(len(self.pop[k].solution)):
-            if i==max_range_index:
-                self.pop[k].solution[i][0] = 1
-            else:
-                self.pop[k].solution[i][0] = 0
+        
 
         # repair solution
 

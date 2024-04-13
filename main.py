@@ -9,5 +9,7 @@ if __name__ == "__main__":
     sensor_positions = np.random.randn(NUM_SENSORS,2)
     sink_nodes_positions = np.random.randn(NUM_SINK_NODES, 2)
 
+    sensor_positions = sensor_positions[sensor_positions[:,0].argsort()]
+    # print(sensor_positions)
     pop = model.Population(POP_SIZE,NEIGHBORHOOD_SIZE,NUM_SENSORS,sensor_positions,NUM_SINK_NODES,sink_nodes_positions)
     # print(pop)
