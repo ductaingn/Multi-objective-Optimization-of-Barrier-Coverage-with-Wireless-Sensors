@@ -10,6 +10,9 @@ class Individual:
         self.sensors_positions = sensors_positions
         self.sink_nodes_positions = sink_node_positions
         self.mu = 0.99
+        # first element of mem_FLS is max range 
+        self.mem_FLS = []
+        self.mem_BLS = []
         
         # Random solution
         activate = np.random.choice([0,1],num_sensors)
@@ -19,6 +22,7 @@ class Individual:
 
         self.f = [1e9,1e9,1e9]
         self.fitness = self.compute_fitness(self.solution, ideal_point)
+        self.preprocess_for_LS()
 
 
     def compute_fitness(self, solution,ideal_point):
@@ -49,6 +53,25 @@ class Individual:
     def repair_solution(self):
         
         return
+    
+    def preprocess_for_LS(self):
+        # print(self.solution)
+        tmp_min_range = 1e9
+        # search in a solution for a gene with 2 genes before and after it having range = 0
+        for i in range(1,self.num_sensors-1):
+            fw = self.solution[i+1]
+            bw = self.solution[i-1]
+            if(self.solution[i][0]==1 and bw[0]==0 and fw[0]==0):
+                self.mem_FLS.append(i)
+            if(self.solution[i][0]==0 and bw[0]==1 and fw[0]==1):
+                if (bw[0] + fw[0]<tmp_min_range):
+                    tmp_min_range = bw[0] + fw[0]
+                    self.mem_BLS.insert(0, i)
+                else: self.mem_BLS.append(i)
+        # sort mem_FLS and mem_BLS in descending order of range
+        self.mem_FLS.sort(key=lambda x: self.solution[x][1], reverse=True)
+        # print(self.mem_FLS)
+        # print(self.mem_BLS)
     
     def update_utility(self, new_solution):
         delta_i = self.compute_fitness(new_solution) - self.fitness
@@ -107,16 +130,7 @@ class Population:
     
   
     def forward_local_search(self, k):
-        # find one gene with max range in pop[k].solution
-        max_range = 0
-        max_range_index = 0
-        for i in range(len(self.pop[k].solution)):
-            if self.pop[k].solution[i][1] > max_range:
-                max_range = self.pop[k].solution[i][1]
-                max_range_index = i
-        
-
-        # repair solution
+        pass
 
     def local_search(self, k):       
         j = np.random.choice(self.pop_size)
