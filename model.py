@@ -1,8 +1,9 @@
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 
+# 1 Individual contains 1 sub-problem and 1 solution
 class Individual:
-    def __init__(self,lambdas, num_sensors, num_sink_nodes, sensors_positions, sink_node_positions) -> None:
+    def __init__(self,lambdas, num_sensors, num_sink_nodes, sensors_positions, sink_node_positions, ideal_point) -> None:
         self.num_sensors = num_sensors
         self.num_sink_nodes = num_sink_nodes
         self.lambdas = lambdas
@@ -16,11 +17,11 @@ class Individual:
         self.solution = [[activate[i],range[i]] for i in range(num_sensors)]
         self.repair_solution()
 
-        self.fitness = self.compute_fitness(self.solution)
+        self.f = [1e9,1e9,1e9]
+        self.fitness = self.compute_fitness(self.solution, ideal_point)
 
 
-    def compute_fitness(self, solution):
-        z = [0,0,0]
+    def compute_fitness(self, solution,ideal_point):
         f = [0,0,0] 
         for i in range(self.num_sensors):
             if(solution[i][0]==1):
@@ -34,9 +35,13 @@ class Individual:
             
                 f[2] += nearest_sink_node_distance
         f[3]/=f[2]
-
-        gte = max([self.lambdas[i]*abs(f[i]-z[i]) for i in range(3)])
+        self.f = f
+        gte = max([self.lambdas[i]*abs(f[i]-ideal_point[i]) for i in range(3)])
         return gte
+    
+    def mutation(self):
+
+        return
                    
     def repair_solution(self):
         
@@ -51,22 +56,29 @@ class Individual:
 
     
 class Population:
-    def __init__(self, pop_size, neighborhood_size, num_sensors, sensors_positions,num_sink_node, sink_nodes_positions) -> None:
+    def __init__(self, pop_size, neighborhood_size, num_sensors, sensors_positions,num_sink_nodes, sink_nodes_positions) -> None:
         self.pop_size = pop_size
         self.neighborhood_size = neighborhood_size
+        self.num_sensors = num_sensors
+        self.num_sink_nodes = num_sink_nodes
         self.lambdas = self.generate_lambdas()
         self.pop:list[Individual] = []
+        self.ideal_point = [0,0,0]
+        self.EP = []
         for i in range(self.pop_size):
-            self.pop.append(Individual(self.lambdas[i], num_sensors, sensors_positions, sink_nodes_positions))
+            self.pop.append(Individual(self.lambdas[i], num_sensors, self.num_sink_nodes, sensors_positions, sink_nodes_positions, self.ideal_point))
 
-        self.neighbor = {} # Use KNN/... to find neighbors of each sub-problem
-        def find_neighbor(self):
+        def find_neighbor():
             # max value for distance to neighbor
             X = np.array(self.lambdas)
             nbrs = NearestNeighbors(n_neighbors=self.neighborhood_size, algorithm='ball_tree').fit(X)
             distances, indices = nbrs.kneighbors(X)
+            neighbor = {}
             for i in range(len(self.lambdas)):
-                self.neighbor[i] =list( indices[i])
+                neighbor[i] =list( indices[i])
+            return neighbor
+        
+        self.neighbor = find_neighbor()
 
     # Genrate uniformly spread weighted vectors lambda 
     def generate_lambdas(self):
@@ -83,18 +95,38 @@ class Population:
         
         return res
     
-    def selection(self):
+    def selection(self, k=16)->list[Individual]:
+        indi_index = list(np.random.choice(range[0,self.pop_size],k))
+        # k is number of individuals in selection pool
+        while(k>2):
+            i = 0
+            for i in range(0,k-1,2):
+                if(self.pop[indi_index[i]].mu>self.pop[indi_index[i+1]].mu):
+                    indi_index.pop(i+1)
+                else:
+                    indi_index.pop(i)
+            k/=2
+        return indi_index
+
+    def local_search(self):    
         return
 
-    def local_search(self):        
-        return
-
-    def mutation(self):
-        return
-
-    def update(self):
+    def update_utility(self, individuals:list[Individual]):
+        for indi in individuals:
+            indi.update_utility()
         return
     
-    def update_utility(self):
+    def update_neighbor_solution(self):
         return
     
+    def update_EP(self):
+        return
+    
+    def reproduct(self):
+        # e = 0
+        # while(e<1000):
+            # selected_indi = self.selection()
+            # random__indi_neighbor = 
+            # for i in selection_index:
+                
+        return
