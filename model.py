@@ -130,7 +130,82 @@ class Population:
     
   
     def forward_local_search(self, k):
-        pass
+        # choose first element in mem_FLS
+        ind = self.pop[k].mem_FLS[0]
+        new_sol = self.pop[k].solution.copy()
+
+        sensor_bw_2 = self.pop[k].sensors_positions[ind-2]
+        sensor_bw_1 = self.pop[k].sensors_positions[ind-1]
+        sensor_fw_1 = self.pop[k].sensors_positions[ind+1]
+        sensor_fw_2 = self.pop[k].sensors_positions[ind+2]
+
+        # calculate distance from center of 2 sensors
+        dist = np.sqrt(np.abs((sensor_bw_1[0]-sensor_fw_1[0])**2 + (sensor_bw_1[1]-sensor_fw_1[1])**2))
+
+        if (ind >= 2):
+            range_bw = np.sqrt(np.abs((sensor_bw_2[0]-sensor_bw_1[0])**2 + (sensor_bw_2[1]-sensor_bw_1[1])**2))
+            range_bw -= self.pop[k].solution[ind-2][1]
+        else:
+            range_bw = 0
+        if (ind <= self.num_sensors-3):
+            range_fw -= np.sqrt(np.abs((sensor_fw_1[0]-sensor_fw_2[0])**2 + (sensor_fw_1[1]-sensor_fw_2[1])**2))
+            range_fw -= self.pop[k].solution[ind+2][1]
+        else:
+            range_fw = 0
+        sum_range = range_bw + range_fw
+
+        if (sum_range <= dist):
+            new_sol[ind-1][1] = dist/2
+            new_sol[ind+1][1] = dist/2
+        else:
+            new_sol[ind-1][1] = range_bw
+            new_sol[ind+1][1] = range_fw
+
+        # replace
+        new_sol[ind-1][0] = 1
+        new_sol[ind+1][0] = 1
+        new_sol[ind][0] = 0
+
+        # compute fitness of new solution
+        new_fitness = self.pop[k].compute_fitness(new_sol, self.ideal_point)
+        # TODO repair solution when?
+        if (new_fitness < self.pop[k].fitness):
+            self.pop[k].solution = new_sol
+            self.pop[k].fitness = new_fitness
+            self.pop[k].mu = self.pop[k].update_utility(new_sol)
+        
+    def backward_local_search(self, k):
+        # choose first element in mem_BLS
+        ind = self.pop[k].mem_BLS[0]
+        new_sol = self.pop[k].solution.copy()
+
+        sensor = self.pop[k].sensors_positions[ind]
+        sensor_bw_2 = self.pop[k].sensors_positions[ind-2]
+        sensor_fw_2 = self.pop[k].sensors_positions[ind+2]
+
+        # calculate distance to center of bw2 and fw2 sensors
+        dist_bw = np.sqrt(np.abs((sensor_bw_2[0]-sensor[0])**2 + (sensor_bw_2[1]-sensor[1])**2))
+        dist_bw -= self.pop[k].solution[ind-2][1]
+        dist_fw = np.sqrt(np.abs((sensor_fw_2[0]-sensor[0])**2 + (sensor_fw_2[1]-sensor[1])**2))
+        dist_fw -= self.pop[k].solution[ind+2][1]
+
+        if (dist_bw < dist_fw):
+            new_sol[ind][1] = dist_fw
+        else:
+            new_sol[ind][1] = dist_bw
+            
+        # replace
+        new_sol[ind][0] = 1
+        new_sol[ind-1][0] = 0
+        new_sol[ind+1][0] = 0
+        
+        # compute fitness of new solution
+        new_fitness = self.pop[k].compute_fitness(new_sol, self.ideal_point)
+        # TODO repair solution when?
+        if (new_fitness < self.pop[k].fitness):
+            self.pop[k].solution = new_sol
+            self.pop[k].fitness = new_fitness
+            self.pop[k].mu = self.pop[k].update_utility(new_sol)
 
     def local_search(self, k):       
         j = np.random.choice(self.pop_size)
