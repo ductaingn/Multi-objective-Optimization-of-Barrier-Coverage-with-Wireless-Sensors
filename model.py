@@ -19,9 +19,10 @@ class Individual:
 
         self.f = [1e9,1e9,1e9]
         self.fitness = self.compute_fitness(self.solution, ideal_point)
+        self.neighbor = []
 
 
-    def compute_fitness(self, solution,ideal_point):
+    def compute_fitness(self, solution, ideal_point):
         f = [0,0,0] 
         for i in range(self.num_sensors):
             if(solution[i][0]==1):
@@ -57,7 +58,9 @@ class Individual:
         else:
             return 0.99 + 0.01*delta_i/0.001
 
-    
+    def add_neighbor(self, individual):
+        self.neighbor.append(individual)
+
 class Population:
     def __init__(self, pop_size, neighborhood_size, num_sensors, sensors_positions,num_sink_nodes, sink_nodes_positions) -> None:
         self.pop_size = pop_size
@@ -76,12 +79,16 @@ class Population:
             X = np.array(self.lambdas)
             nbrs = NearestNeighbors(n_neighbors=self.neighborhood_size, algorithm='ball_tree').fit(X)
             distances, indices = nbrs.kneighbors(X)
-            neighbor = {}
             for i in range(len(self.lambdas)):
-                neighbor[i] =list( indices[i])
-            return neighbor
+                for j in indices[i]:
+                    self.pop[i].add_neighbor(self.pop[j])
         
-        self.neighbor = find_neighbor()
+        find_neighbor()
+
+    def new_individual(self, individual:Individual)->Individual:
+        new = Individual(individual.lambdas, individual.num_sensors, individual.num_sink_nodes, individual.sensors_positions, individual.sink_nodes_positions, self.ideal_point)
+
+        return new
 
     def __repr__(self) -> str:
         # print every individual in population
@@ -89,7 +96,7 @@ class Population:
         for i in range(self.pop_size):
             res += f"Solution to Individual {i}: {self.pop[i].solution}\n"
         return res
-
+    
     # Genrate uniformly spread weighted vectors lambda 
     def generate_lambdas(self):
         sub_problem_lambdas = []
@@ -140,6 +147,15 @@ class Population:
             k/=2
         
         return sorted([self.pop[i] for i in indi_index])[-1]
+    
+    def crossover(self, individual:Individual, breed:Individual)->Individual:
+        cross_point = len(individual.solution)/2
+        new_individual = self.new_individual(individual)
+        for i in range(cross_point,len(individual.solution)):
+            new_individual.solution[i] = breed.solution[i]
+
+        individual.compute_fitness(individual.solution, self.ideal_point)
+        return new_individual
 
     def update_utility(self, individuals:list[Individual]):
         for indi in individuals:
@@ -154,19 +170,27 @@ class Population:
     
     def reproduct(self):
         # Select 1 sub-problem
+        sub_problem = self.selection()
 
         # Offspring generation 
+        choosen_neighbor = np.random.choice(sub_problem.neighbor)
+        child = self.crossover(sub_problem, choosen_neighbor)
+        if(child.fitness<sub_problem.fitness):
+            sub_problem.update_utility(child.solution)
+            sub_problem.solution = child.solution
+            sub_problem.compute_fitness(sub_problem.solution,self.ideal_point)
 
         # Mutation
+        sub_problem.mutation()
 
         # Local search
+        
 
         # Repair solution
+        sub_problem.repair_solution()
 
         # Update current and neighboring solution
 
-        # Update Ultility
-
         # Update EP
-                
+        
         return
