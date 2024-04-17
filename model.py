@@ -173,6 +173,7 @@ class Population:
             self.pop[k].solution = new_sol
             self.pop[k].fitness = new_fitness
             self.pop[k].mu = self.pop[k].update_utility(new_sol)
+            self.pop[k].preprocess_for_LS()
         
     def backward_local_search(self, k):
         # choose first element in mem_BLS
@@ -206,15 +207,12 @@ class Population:
             self.pop[k].solution = new_sol
             self.pop[k].fitness = new_fitness
             self.pop[k].mu = self.pop[k].update_utility(new_sol)
+            self.pop[k].preprocess_for_LS()
 
-    def local_search(self, k):       
-        j = np.random.choice(self.pop_size)
-        if (j < k):
-            for _ in range (k-j):
-                self.forward_local_search(k)
-        else:
-            for _ in range (j-k):
-                self.backward_local_search(k)
+    def local_search(self, k):
+        # TODO fix logic to 2016 paper
+        self.forward_local_search(k+1)
+        self.backward_local_search(k-1)
 
     def selection(self, k=16)->Individual:
         indi_index = list(np.random.choice(range[0,self.pop_size],k))
@@ -235,10 +233,21 @@ class Population:
             indi.update_utility()
         return
     
-    def update_neighbor_solution(self):
-        return
+    def update_neighbor_solution(self, k):
+        # get neighbor of k
+        neighbors = self.neighbor[k]
+        # evaluate solution k in neighbor sub-problems
+        for i in neighbors:
+            new_fitness = self.pop[i].compute_fitness(self.pop[k].solution, self.ideal_point)
+            if(new_fitness<self.pop[i].fitness):
+                self.pop[i].solution = self.pop[k].solution
+                self.pop[i].fitness = new_fitness
+                self.pop[i].mu = self.pop[i].update_utility(self.pop[k].solution)
+                # if 1 solution updated, preprocess for LS again
+                self.pop[i].preprocess_for_LS()
     
     def update_EP(self):
+        # TODO update ideal point here 
         return
     
     def reproduct(self):
@@ -248,7 +257,7 @@ class Population:
 
         # Mutation
 
-        # Local search
+        # Local search -> subproblem K-1, K+1 updated or not
 
         # Repair solution
 
