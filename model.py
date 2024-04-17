@@ -127,7 +127,7 @@ class Population:
             for _ in range (j-k):
                 self.backward_local_search(k)
 
-    def selection(self, k=16)->list[Individual]:
+    def selection(self, k=16)->Individual:
         indi_index = list(np.random.choice(range[0,self.pop_size],k))
         # k is number of individuals in selection pool
         while(k>2):
@@ -138,7 +138,8 @@ class Population:
                 else:
                     indi_index.pop(i)
             k/=2
-        return indi_index
+        
+        return sorted([self.pop[i] for i in indi_index])[-1]
 
     def update_utility(self, individuals:list[Individual]):
         for indi in individuals:
@@ -152,10 +153,20 @@ class Population:
         return
     
     def reproduct(self):
-        # e = 0
-        # while(e<1000):
-            # selected_indi = self.selection()
-            # random__indi_neighbor = 
-            # for i in selection_index:
+        # Select 1 sub-problem
+
+        # Offspring generation 
+
+        # Mutation
+
+        # Local search
+
+        # Repair solution
+
+        # Update current and neighboring solution
+
+        # Update Ultility
+
+        # Update EP
                 
         return
