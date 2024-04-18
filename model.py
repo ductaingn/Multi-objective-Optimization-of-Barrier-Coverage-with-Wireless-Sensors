@@ -45,6 +45,7 @@ class Individual:
         f[2]/=f[1]
         self.f = f
         gte = max([self.lambdas[i]*abs(f[i]-ideal_point[i]) for i in range(3)])
+        # print(gte)
         return gte
     
     def mutation(self):
@@ -93,6 +94,7 @@ class Population:
         self.lambdas = self.generate_lambdas()
         self.pop:list[Individual] = []
         self.ideal_point = [0,0,0]
+        self.z_nadir = [1e9,1e9,1e9]
         self.EP = []
         for i in range(self.pop_size):
             self.pop.append(Individual(self.lambdas[i], num_sensors, self.num_sink_nodes, sensors_positions, sink_nodes_positions, self.ideal_point))
@@ -256,10 +258,42 @@ class Population:
                 neighbor.mu = neighbor.update_utility(individual.solution, self.ideal_point)
                 # if 1 solution updated, preprocess for LS again
                 neighbor.preprocess_for_LS()
+                # print("Neighbor updated", neighbor.solution, neighbor.fitness)
     
-    def update_EP(self):
-        # TODO update ideal point here 
-        return
+    def update_EP(self, individual: Individual):
+        new_EP = []
+        add_to_EP = True
+
+        if len(self.EP) == 0:
+            self.EP.append(individual)
+            return
+
+        # loop through EP to find solutions dominated by individual, and find solutions that dominate individual
+        # if individual dominates a solution in EP, replace that solution with individual
+        # if individual is dominated by a solution in EP, do nothing
+        for solution in self.EP:
+            dominated_by_individual = False
+            dominate_individual = False
+            for j in range(3):
+                if solution.f[j] > individual.f[j]:
+                    dominated_by_individual = True
+                    break
+                elif solution.f[j] < individual.f[j]:
+                    dominate_individual = True
+            if not dominated_by_individual:
+                new_EP.append(solution)
+                if dominate_individual:
+                    add_to_EP = False
+
+        if add_to_EP:
+            new_EP.append(individual)
+
+        self.EP = new_EP
+        
+        # Update ideal_point and z_nadir
+        for i in range(3):
+            self.ideal_point[i] = min(self.ideal_point[i], individual.f[i])
+            self.z_nadir[i] = max(self.z_nadir[i], individual.f[i])
     
     def reproduct(self):
         # Select 1 sub-problem
@@ -279,8 +313,13 @@ class Population:
         # Repair solution
         sub_problem.repair_solution()
 
+        # # local search
+        # self.local_search(sub_problem_index)
+
         # Update current and neighboring solution
+        self.update_neighbor_solution(sub_problem)
 
         # Update EP
+        self.update_EP(sub_problem)
         
         return
