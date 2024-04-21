@@ -3,7 +3,7 @@ from sklearn.neighbors import NearestNeighbors
 
 # 1 Individual contains 1 sub-problem and 1 solution
 class Individual:
-    def __init__(self,lambdas, num_sensors, num_sink_nodes, sensors_positions, sink_node_positions, ideal_point) -> None:
+    def __init__(self,lambdas, num_sensors, num_sink_nodes, sensors_positions, sink_node_positions, ideal_point, nadir_point) -> None:
         self.num_sensors = num_sensors
         self.num_sink_nodes = num_sink_nodes
         self.lambdas = lambdas
@@ -21,12 +21,12 @@ class Individual:
         self.repair_solution()
 
         self.f = [1e9,1e9,1e9]
-        self.fitness = self.compute_fitness(self.solution, ideal_point)
+        self.fitness = self.compute_fitness(self.solution, ideal_point, nadir_point)
         self.neighbor = []
         self.preprocess_for_LS()
 
 
-    def compute_fitness(self, solution, ideal_point):
+    def compute_fitness(self, solution, ideal_point, nadir_point):
         f = [0,0,0] 
         for i in range(self.num_sensors):
             if(solution[i][0]==1):
@@ -41,6 +41,11 @@ class Individual:
                 f[2] += nearest_sink_node_distance
               
         f[2]/=f[1]
+
+        # Normalizing
+        for i in range(3):
+            f[i] = (f[i]-ideal_point[i])/(nadir_point[i]-ideal_point[i])
+
         self.f = f
         gte = max([self.lambdas[i]*abs(f[i]-ideal_point[i]) for i in range(3)])
         return gte
@@ -86,8 +91,8 @@ class Individual:
         # print(self.mem_FLS)
         # print(self.mem_BLS)
     
-    def update_utility(self, new_solution):
-        delta_i = self.compute_fitness(new_solution) - self.fitness
+    def update_utility(self, new_solution, ideal_point, nadir_point):
+        delta_i = self.compute_fitness(new_solution, ideal_point, nadir_point) - self.fitness
         if(delta_i>0.001):
             return 1
         else:
@@ -105,9 +110,10 @@ class Population:
         self.lambdas = self.generate_lambdas()
         self.pop:list[Individual] = []
         self.ideal_point = [0,0,0]
+        self.nadir_point = [1e9,1e9,1e9]
         self.EP = []
         for i in range(self.pop_size):
-            self.pop.append(Individual(self.lambdas[i], num_sensors, self.num_sink_nodes, sensors_positions, sink_nodes_positions, self.ideal_point))
+            self.pop.append(Individual(self.lambdas[i], num_sensors, self.num_sink_nodes, sensors_positions, sink_nodes_positions, self.ideal_point, self.nadir_point))
 
         def find_neighbor():
             # max value for distance to neighbor
@@ -121,7 +127,7 @@ class Population:
         find_neighbor()
 
     def new_individual(self, individual:Individual)->Individual:
-        new = Individual(individual.lambdas, individual.num_sensors, individual.num_sink_nodes, individual.sensors_positions, individual.sink_nodes_positions, self.ideal_point)
+        new = Individual(individual.lambdas, individual.num_sensors, individual.num_sink_nodes, individual.sensors_positions, individual.sink_nodes_positions, self.ideal_point, self.nadir_point)
 
         return new
 
@@ -245,7 +251,7 @@ class Population:
         for i in range(cross_point,len(individual.solution)):
             new_individual.solution[i] = breed.solution[i]
 
-        individual.compute_fitness(individual.solution, self.ideal_point)
+        individual.compute_fitness(individual.solution, self.ideal_point, self.nadir_point)
         return new_individual
 
     def update_utility(self, individuals:list[Individual]):
@@ -267,7 +273,7 @@ class Population:
                 self.pop[i].preprocess_for_LS()
     
     def update_EP(self):
-        # TODO update ideal point here 
+        # TODO update ideal point and nadir point here
         return
     
     def reproduct(self):
@@ -280,7 +286,7 @@ class Population:
         if(child.fitness<sub_problem.fitness):
             sub_problem.update_utility(child.solution)
             sub_problem.solution = child.solution
-            sub_problem.compute_fitness(sub_problem.solution,self.ideal_point)
+            sub_problem.compute_fitness(sub_problem.solution,self.ideal_point, self.nadir_point)
 
         # Mutation
         sub_problem.mutation()
