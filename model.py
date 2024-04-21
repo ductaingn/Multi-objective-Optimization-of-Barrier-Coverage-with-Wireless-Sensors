@@ -35,8 +35,6 @@ class Individual:
 
                 nearest_sink_node_distance = 1e9
                 for j in range(self.num_sink_nodes):
-                    # print(self.sensors_positions[i])
-                    # print(self.sink_nodes_positions[j])
                     distance = np.abs((self.sensors_positions[i][0]-self.sink_nodes_positions[j][0])**2 + (self.sensors_positions[i][1]-self.sink_nodes_positions[j][1])**2)
                     nearest_sink_node_distance = min(nearest_sink_node_distance, distance)
             
@@ -48,7 +46,21 @@ class Individual:
         return gte
     
     def mutation(self):
+        active_sensor_index = []
+        sleep_sensor_index = []
+        for i in range(len(self.solution)):
+            if(self.solution[i][0]==1):
+                active_sensor_index.append(i)
+            else:
+                sleep_sensor_index.append(i)
 
+        # Choose a sleep sensor and a active sensor, then exchange their state
+        change_index = np.random.choice(active_sensor_index), np.random.choice(sleep_sensor_index)
+
+        temp = self.solution[change_index[0]]
+        self.solution[change_index[0]] = self.solution[change_index[1]]
+        self.solution[change_index[1]] = temp
+        
         return
                    
     def repair_solution(self):
@@ -221,9 +233,9 @@ class Population:
         self.forward_local_search(k+1)
         self.backward_local_search(k-1)
 
-    def selection(self, k=16)->Individual:
-        indi_index = list(np.random.choice(range[0,self.pop_size],k))
+    def selection(self, k=16)->list[Individual,int]:
         # k is number of individuals in selection pool
+        indi_index = list(np.random.choice(range[0,self.pop_size],size=k))
         pool = [[self.pop[i],i] for i in indi_index]
         return sorted(pool, key=lambda x:pool[1])[-1]
     
@@ -276,7 +288,7 @@ class Population:
         # Repair solution
         sub_problem.repair_solution()
 
-        # Update current and neighboring solution
+        # Update neighboring solution
 
         # Update EP
         
