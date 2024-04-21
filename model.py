@@ -241,12 +241,12 @@ class Population:
 
     def selection(self, k=16)->list[Individual,int]:
         # k is number of individuals in selection pool
-        indi_index = list(np.random.choice(range[0,self.pop_size],size=k))
+        indi_index = list(np.random.choice(range(0,self.pop_size),size=k))
         pool = [[self.pop[i],i] for i in indi_index]
         return sorted(pool, key=lambda x:pool[1])[-1]
     
     def crossover(self, individual:Individual, breed:Individual)->Individual:
-        cross_point = len(individual.solution)/2
+        cross_point = int(len(individual.solution)/2)
         new_individual = self.new_individual(individual)
         for i in range(cross_point,len(individual.solution)):
             new_individual.solution[i] = breed.solution[i]
@@ -278,13 +278,13 @@ class Population:
     
     def reproduct(self):
         # Select 1 sub-problem
-        sub_problem,sub_problem_index = self.selection()
+        sub_problem, sub_problem_index = self.selection()
 
         # Offspring generation 
         choosen_neighbor = np.random.choice(sub_problem.neighbor)
         child = self.crossover(sub_problem, choosen_neighbor)
         if(child.fitness<sub_problem.fitness):
-            sub_problem.update_utility(child.solution)
+            sub_problem.update_utility(child.solution, self.ideal_point, self.nadir_point)
             sub_problem.solution = child.solution
             sub_problem.compute_fitness(sub_problem.solution,self.ideal_point, self.nadir_point)
 
