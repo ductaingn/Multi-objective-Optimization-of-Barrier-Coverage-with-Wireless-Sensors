@@ -22,7 +22,8 @@ class Individual:
 
         self.f = [1e9,1e9,1e9]
         self.fitness = self.compute_fitness(self.solution, ideal_point, nadir_point)
-        self.neighbor = []
+        self.neighbor:list[Individual] = []
+
         self.preprocess_for_LS()
 
 
@@ -48,6 +49,7 @@ class Individual:
 
         self.f = f
         gte = max([self.lambdas[i]*abs(f[i]-ideal_point[i]) for i in range(3)])
+        # print(gte)
         return gte
     
     def mutation(self):
@@ -91,6 +93,7 @@ class Individual:
         # print(self.mem_FLS)
         # print(self.mem_BLS)
     
+
     def update_utility(self, new_solution, ideal_point, nadir_point):
         delta_i = self.compute_fitness(new_solution, ideal_point, nadir_point) - self.fitness
         if(delta_i>0.001):
@@ -154,27 +157,27 @@ class Population:
         return res
     
   
-    def forward_local_search(self, k):
+    def forward_local_search(self, individual:Individual):
         # choose first element in mem_FLS
-        ind = self.pop[k].mem_FLS[0]
-        new_sol = self.pop[k].solution.copy()
+        ind = individual.mem_FLS[0]
+        new_sol = individual.solution.copy()
 
-        sensor_bw_2 = self.pop[k].sensors_positions[ind-2]
-        sensor_bw_1 = self.pop[k].sensors_positions[ind-1]
-        sensor_fw_1 = self.pop[k].sensors_positions[ind+1]
-        sensor_fw_2 = self.pop[k].sensors_positions[ind+2]
+        sensor_bw_2 = individual.sensors_positions[ind-2]
+        sensor_bw_1 = individual.sensors_positions[ind-1]
+        sensor_fw_1 = individual.sensors_positions[ind+1]
+        sensor_fw_2 = individual.sensors_positions[ind+2]
 
         # calculate distance from center of 2 sensors
         dist = np.sqrt(np.abs((sensor_bw_1[0]-sensor_fw_1[0])**2 + (sensor_bw_1[1]-sensor_fw_1[1])**2))
 
         if (ind >= 2):
             range_bw = np.sqrt(np.abs((sensor_bw_2[0]-sensor_bw_1[0])**2 + (sensor_bw_2[1]-sensor_bw_1[1])**2))
-            range_bw -= self.pop[k].solution[ind-2][1]
+            range_bw -= individual.solution[ind-2][1]
         else:
             range_bw = 0
         if (ind <= self.num_sensors-3):
             range_fw -= np.sqrt(np.abs((sensor_fw_1[0]-sensor_fw_2[0])**2 + (sensor_fw_1[1]-sensor_fw_2[1])**2))
-            range_fw -= self.pop[k].solution[ind+2][1]
+            range_fw -= individual.solution[ind+2][1]
         else:
             range_fw = 0
         sum_range = range_bw + range_fw
@@ -192,28 +195,28 @@ class Population:
         new_sol[ind][0] = 0
 
         # compute fitness of new solution
-        new_fitness = self.pop[k].compute_fitness(new_sol, self.ideal_point)
+        new_fitness = individual.compute_fitness(new_sol, self.ideal_point)
         # TODO repair solution when?
-        if (new_fitness < self.pop[k].fitness):
-            self.pop[k].solution = new_sol
-            self.pop[k].fitness = new_fitness
-            self.pop[k].mu = self.pop[k].update_utility(new_sol)
-            self.pop[k].preprocess_for_LS()
+        if (new_fitness < individual.fitness):
+            individual.solution = new_sol
+            individual.fitness = new_fitness
+            individual.mu = individual.update_utility(new_sol, self.ideal_point)
+            individual.preprocess_for_LS()
         
-    def backward_local_search(self, k):
+    def backward_local_search(self, individual:Individual):
         # choose first element in mem_BLS
-        ind = self.pop[k].mem_BLS[0]
-        new_sol = self.pop[k].solution.copy()
+        ind = individual.mem_BLS[0]
+        new_sol = individual.solution.copy()
 
-        sensor = self.pop[k].sensors_positions[ind]
-        sensor_bw_2 = self.pop[k].sensors_positions[ind-2]
-        sensor_fw_2 = self.pop[k].sensors_positions[ind+2]
+        sensor = individual.sensors_positions[ind]
+        sensor_bw_2 = individual.sensors_positions[ind-2]
+        sensor_fw_2 = individual.sensors_positions[ind+2]
 
         # calculate distance to center of bw2 and fw2 sensors
         dist_bw = np.sqrt(np.abs((sensor_bw_2[0]-sensor[0])**2 + (sensor_bw_2[1]-sensor[1])**2))
-        dist_bw -= self.pop[k].solution[ind-2][1]
+        dist_bw -= individual.solution[ind-2][1]
         dist_fw = np.sqrt(np.abs((sensor_fw_2[0]-sensor[0])**2 + (sensor_fw_2[1]-sensor[1])**2))
-        dist_fw -= self.pop[k].solution[ind+2][1]
+        dist_fw -= individual.solution[ind+2][1]
 
         if (dist_bw < dist_fw):
             new_sol[ind][1] = dist_fw
@@ -226,23 +229,27 @@ class Population:
         new_sol[ind+1][0] = 0
         
         # compute fitness of new solution
-        new_fitness = self.pop[k].compute_fitness(new_sol, self.ideal_point)
+        new_fitness = individual.compute_fitness(new_sol, self.ideal_point)
         # TODO repair solution when?
-        if (new_fitness < self.pop[k].fitness):
-            self.pop[k].solution = new_sol
-            self.pop[k].fitness = new_fitness
-            self.pop[k].mu = self.pop[k].update_utility(new_sol)
-            self.pop[k].preprocess_for_LS()
+        if (new_fitness < individual.fitness):
+            individual.solution = new_sol
+            individual.fitness = new_fitness
+            individual.mu = individual.update_utility(new_sol, self.ideal_point)
+            individual.preprocess_for_LS()
 
     def local_search(self, k):
         # TODO fix logic to 2016 paper
-        self.forward_local_search(k+1)
-        self.backward_local_search(k-1)
+        fw_subproblem = self.pop[k+1]
+        bw_subproblem = self.pop[k-1]
+        self.forward_local_search(fw_subproblem)
+        self.backward_local_search(bw_subproblem)
+
 
     def selection(self, k=16)->list[Individual,int]:
         # k is number of individuals in selection pool
         indi_index = list(np.random.choice(range(0,self.pop_size),size=k))
         pool = [[self.pop[i],i] for i in indi_index]
+
         return sorted(pool, key=lambda x:pool[1])[-1]
     
     def crossover(self, individual:Individual, breed:Individual)->Individual:
@@ -259,22 +266,55 @@ class Population:
             indi.update_utility()
         return
     
-    def update_neighbor_solution(self, k):
+    def update_neighbor_solution(self, individual:Individual):
         # get neighbor of k
-        neighbors = self.neighbor[k]
+        neighbors = individual.neighbor
         # evaluate solution k in neighbor sub-problems
-        for i in neighbors:
-            new_fitness = self.pop[i].compute_fitness(self.pop[k].solution, self.ideal_point)
-            if(new_fitness<self.pop[i].fitness):
-                self.pop[i].solution = self.pop[k].solution
-                self.pop[i].fitness = new_fitness
-                self.pop[i].mu = self.pop[i].update_utility(self.pop[k].solution)
+        for neighbor in neighbors:
+            new_fitness = neighbor.compute_fitness(individual.solution, self.ideal_point)
+            if(new_fitness<neighbor.fitness):
+                neighbor.solution = individual.solution
+                neighbor.fitness = new_fitness
+                neighbor.mu = neighbor.update_utility(individual.solution, self.ideal_point)
                 # if 1 solution updated, preprocess for LS again
-                self.pop[i].preprocess_for_LS()
+                neighbor.preprocess_for_LS()
+                # print("Neighbor updated", neighbor.solution, neighbor.fitness)
     
-    def update_EP(self):
-        # TODO update ideal point and nadir point here
-        return
+    def update_EP(self, individual: Individual):
+        new_EP = []
+        add_to_EP = True
+
+        if len(self.EP) == 0:
+            self.EP.append(individual)
+            return
+
+        # loop through EP to find solutions dominated by individual, and find solutions that dominate individual
+        # if individual dominates a solution in EP, replace that solution with individual
+        # if individual is dominated by a solution in EP, do nothing
+        for solution in self.EP:
+            dominated_by_individual = False
+            dominate_individual = False
+            for j in range(3):
+                if solution.f[j] > individual.f[j]:
+                    dominated_by_individual = True
+                    break
+                elif solution.f[j] < individual.f[j]:
+                    dominate_individual = True
+            if not dominated_by_individual:
+                new_EP.append(solution)
+                if dominate_individual:
+                    add_to_EP = False
+
+        if add_to_EP:
+            new_EP.append(individual)
+
+        self.EP = new_EP
+        
+        # Update ideal_point and z_nadir
+        for i in range(3):
+            self.ideal_point[i] = min(self.ideal_point[i], individual.f[i])
+            self.nadir_point[i] = max(self.nadir_point[i], individual.f[i])
+
     
     def reproduct(self):
         # Select 1 sub-problem
@@ -294,8 +334,11 @@ class Population:
         # Repair solution
         sub_problem.repair_solution()
 
-        # Update neighboring solution
+
+        self.update_neighbor_solution(sub_problem)
+
 
         # Update EP
+        self.update_EP(sub_problem)
         
         return
