@@ -71,7 +71,54 @@ class Individual:
         return
                    
     def repair_solution(self):
-        
+        barier_length = 1000
+
+        # Get index of active sensors
+        active_indx = []
+        # Distance between active adjacent sensors 
+        distance = np.zeros(shape=(self.num_sensors, self.num_sensors))
+        for i in range(len(self.solution)):
+            if(self.solution[i][0]==1):
+                active_indx.append(i)
+                if(len(active_indx)>1):
+                    d =  np.sqrt(
+                        (self.sensors_positions[active_indx[-1]][0]-self.sensors_positions[active_indx[-2]][0])**2 + 
+                        (self.sensors_positions[active_indx[-1]][1]-self.sensors_positions[active_indx[-2]][1])**2)
+                    distance[active_indx[-2]][active_indx[-1]] = d
+                    distance[active_indx[-1]][active_indx[-2]] = d
+
+
+        # Coverage requirement
+        for i in range(len(active_indx)):
+            if(i==0):
+                self.solution[active_indx[i]][1] = max(
+                    (self.sensors_positions[active_indx[0]][0]-0),
+                    distance[active_indx[0]][active_indx[1]])
+                
+            elif(i==len(active_indx)-1):
+                self.solution[active_indx[i]][1] = max(
+                    (barier_length - self.sensors_positions[active_indx[i]][0]),
+                    distance[active_indx[i]][active_indx[i-1]])
+                
+            else:
+                self.solution[active_indx[i]][1] = max(
+                    distance[active_indx[i]][active_indx[i-1]],
+                    distance[active_indx[i]][active_indx[i+1]])
+
+        # Shrink
+        for i in range(1,len(active_indx)-1):
+            # If sensor i's range intersect with two of its adjacents
+            if(distance[active_indx[i]][active_indx[i-1]] < self.solution[active_indx[i]][1]+self.solution[active_indx[i-1]][1]
+               and
+               distance[active_indx[i]][active_indx[i+1]] < self.solution[active_indx[i]][1]+self.solution[active_indx[i+1]][1]):
+
+                # The distance between sensor i and i-1's range: d1 = distance(sensor_i, sensor_i-1) - R(sensor_i-1)
+                d1 = distance[active_indx[i]][active_indx[i-1]] - self.solution[active_indx[i-1]][1]
+                # The distance between sensor i and i+1's range: d2 = distance(sensor_i, sensor_i+1) - R(sensor_i+1)
+                d2 = distance[active_indx[i]][active_indx[i+1]] - self.solution[active_indx[i+1]][1]
+
+                self.solution[active_indx[i]][1] = max(d1,d2)
+
         return
     
     def preprocess_for_LS(self):
@@ -334,9 +381,8 @@ class Population:
         # Repair solution
         sub_problem.repair_solution()
 
-
+        self.local_search(sub_problem_index)
         self.update_neighbor_solution(sub_problem)
-
 
         # Update EP
         self.update_EP(sub_problem)
