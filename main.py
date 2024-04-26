@@ -34,10 +34,22 @@ if __name__ == "__main__":
 			print(i/NUM_EVALUATION*100,'%')
 	with open('result.pickle','wb') as file:
 		pickle.dump(pop,file)
+	# write population to txt file
+	with open('dataset/result.txt','w') as file:
+		for i in range(POP_SIZE):
+			file.write(str(pop.pop[i])+'\n')
+		
 	with open('sensor_positions.pickle','wb') as file:
 		pickle.dump(sensors_positions,file)
+	sensors_positions_str = np.array2string(sensors_positions)
+	with open('dataset/sensors_positions.txt','wb') as file:
+		file.write(sensors_positions_str.encode())
+  
 	with open('sink_nodes_positions.pickle','wb') as file:
 		pickle.dump(sink_nodes_positions,file)
+	# # print(sink_nodes_positions)
+	with open('dataset/sink_nodes_positions.txt','w') as file:
+		file.write(str(sink_nodes_positions))
 
 	Plot.Plot_solution(pop.pop[0].sensors_positions, pop.pop[0].solution)
 

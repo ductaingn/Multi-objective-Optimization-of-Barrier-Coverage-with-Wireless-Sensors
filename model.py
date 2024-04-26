@@ -34,6 +34,9 @@ class Individual:
         self.distances = distances
 
         self.preprocess_for_LS()
+    
+    def __repr__(self) -> str:
+        return f"Solution: {self.solution}\nFitness: {self.fitness}\n"
 
 
     def compute_fitness(self, solution, ideal_point, nadir_point):
