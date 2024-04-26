@@ -1,18 +1,54 @@
 import model
 import numpy as np
+import matplotlib.pyplot as plt
+import Plot
+import pickle
 
 if __name__ == "__main__":
-    POP_SIZE = 20
-    NEIGHBORHOOD_SIZE = 20
-    NUM_SENSORS = 100
-    NUM_SINK_NODES = 1
-    NUM_EVALUATION = 1000
-    sensor_positions = np.random.randn(NUM_SENSORS,2)
-    sink_nodes_positions = np.random.randn(NUM_SINK_NODES, 2)
+	POP_SIZE = 20
+	NEIGHBORHOOD_SIZE = 3
+	NUM_SENSORS = 100
+	NUM_SINK_NODES = 1
+	NUM_EVALUATION = 10000
+	# sensors_x = np.random.uniform(low=0,high=1000,size=(NUM_SENSORS))
+	# sensors_y = np.random.uniform(low=0,high=10,size=(NUM_SENSORS))
+	# sensors_positions = np.array([[sensors_x[i],sensors_y[i]] for i in range(NUM_SENSORS)])
+	# sensors_positions.sort(axis=0)
 
-    sensor_positions = sensor_positions[sensor_positions[:,0].argsort()]
-    # print(sensor_positions)
-    pop = model.Population(POP_SIZE,NEIGHBORHOOD_SIZE,NUM_SENSORS,sensor_positions,NUM_SINK_NODES,sink_nodes_positions)
-    
-    for _ in range(NUM_EVALUATION):
-        pop.reproduct()
+	# sink_nodes_x = np.random.uniform(low=0, high=1000, size=(NUM_SINK_NODES))
+	# sink_nodes_y = np.random.uniform(low=0, high=10,size=(NUM_SINK_NODES))
+	# sink_nodes_positions = [[sink_nodes_x[i],sink_nodes_y[i]] for i in range(NUM_SINK_NODES)]
+	with open('sensor_positions.pickle','rb') as file:
+		sensors_positions = pickle.load(file)
+	with open('sink_nodes_positions.pickle','rb') as file:
+		sink_nodes_positions = pickle.load(file)
+		
+	pop = model.Population(POP_SIZE,NEIGHBORHOOD_SIZE,NUM_SENSORS,sensors_positions,NUM_SINK_NODES,sink_nodes_positions)
+
+	fitness = []
+	generations = []
+	for i in range(NUM_EVALUATION):
+		pop.reproduct()
+		f = []
+		for indi in pop.pop:
+			f.append(indi.f)
+		generations.append(f)
+		best = sorted(pop.pop,key= lambda x:x.fitness)[-1]
+		fitness.append(best.fitness)
+		if(i%100==0):
+			print(i/NUM_EVALUATION*100,'%')
+	
+	with open('generations.pickle','wb') as file:
+		pickle.dump(generations,file)
+	with open('result.pickle','wb') as file:
+		pickle.dump(pop,file)
+	with open('sensor_positions.pickle','wb') as file:
+		pickle.dump(sensors_positions,file)
+	with open('sink_nodes_positions.pickle','wb') as file:
+		pickle.dump(sink_nodes_positions,file)
+
+	Plot.Plot_solution(pop.pop[0].sensors_positions, pop.pop[0].solution)
+
+	plt.plot(fitness)
+	plt.show()
+	print()

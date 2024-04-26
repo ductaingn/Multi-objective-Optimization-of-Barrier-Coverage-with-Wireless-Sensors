@@ -3,7 +3,7 @@ from sklearn.neighbors import NearestNeighbors
 
 # 1 Individual contains 1 sub-problem and 1 solution
 class Individual:
-    def __init__(self,lambdas, num_sensors, num_sink_nodes, sensors_positions, sink_node_positions, ideal_point, nadir_point) -> None:
+    def __init__(self,lambdas, num_sensors, num_sink_nodes, sensors_positions, sink_node_positions, ideal_point, nadir_point, distances, solution = []) -> None:
         self.num_sensors = num_sensors
         self.num_sink_nodes = num_sink_nodes
         self.lambdas = lambdas
@@ -13,16 +13,25 @@ class Individual:
         # first element of mem_FLS is max range 
         self.mem_FLS = []
         self.mem_BLS = []
+        self.distances = distances
         
         # Random solution
         activate = np.random.choice([0,1],num_sensors)
         srange = np.random.rand(num_sensors)
-        self.solution = [[activate[i], srange[i]] for i in range(num_sensors)]
-        self.repair_solution()
+        self.solution = solution
+        if solution == []:
+            for i in range(num_sensors):
+                if(activate[i]==1):
+                    self.solution.append([activate[i],srange[i]])
+                else:
+                    self.solution.append([activate[i],0])
+            self.repair_solution()
 
         self.f = [1e9,1e9,1e9]
         self.fitness = self.compute_fitness(self.solution, ideal_point, nadir_point)
         self.neighbor:list[Individual] = []
+
+        self.distances = distances
 
         self.preprocess_for_LS()
 
@@ -36,7 +45,7 @@ class Individual:
 
                 nearest_sink_node_distance = 1e9
                 for j in range(self.num_sink_nodes):
-                    distance = np.abs((self.sensors_positions[i][0]-self.sink_nodes_positions[j][0])**2 + (self.sensors_positions[i][1]-self.sink_nodes_positions[j][1])**2)
+                    distance = np.sqrt((self.sensors_positions[i][0]-self.sink_nodes_positions[j][0])**2 + (self.sensors_positions[i][1]-self.sink_nodes_positions[j][1])**2)
                     nearest_sink_node_distance = min(nearest_sink_node_distance, distance)
             
                 f[2] += nearest_sink_node_distance
@@ -50,7 +59,8 @@ class Individual:
         self.f = f
         gte = max([self.lambdas[i]*abs(f[i]-ideal_point[i]) for i in range(3)])
         # print(gte)
-        return gte
+        self.fitness = 1/gte
+        return self.fitness
     
     def mutation(self):
         active_sensor_index = []
@@ -76,49 +86,46 @@ class Individual:
         # Get index of active sensors
         active_indx = []
         # Distance between active adjacent sensors 
-        distance = np.zeros(shape=(self.num_sensors, self.num_sensors))
-        for i in range(len(self.solution)):
+        distance = self.distances
+        for i in range(len(self.sensors_positions)):            
             if(self.solution[i][0]==1):
                 active_indx.append(i)
-                if(len(active_indx)>1):
-                    d =  np.sqrt(
-                        (self.sensors_positions[active_indx[-1]][0]-self.sensors_positions[active_indx[-2]][0])**2 + 
-                        (self.sensors_positions[active_indx[-1]][1]-self.sensors_positions[active_indx[-2]][1])**2)
-                    distance[active_indx[-2]][active_indx[-1]] = d
-                    distance[active_indx[-1]][active_indx[-2]] = d
-
 
         # Coverage requirement
-        for i in range(len(active_indx)):
-            if(i==0):
-                self.solution[active_indx[i]][1] = max(
-                    (self.sensors_positions[active_indx[0]][0]-0),
-                    distance[active_indx[0]][active_indx[1]])
-                
-            elif(i==len(active_indx)-1):
-                self.solution[active_indx[i]][1] = max(
-                    (barier_length - self.sensors_positions[active_indx[i]][0]),
-                    distance[active_indx[i]][active_indx[i-1]])
-                
-            else:
-                self.solution[active_indx[i]][1] = max(
-                    distance[active_indx[i]][active_indx[i-1]],
-                    distance[active_indx[i]][active_indx[i+1]])
+        self.solution[active_indx[0]][1] = max(
+            np.sqrt((self.sensors_positions[active_indx[0]][0]-0)**2 + (self.sensors_positions[active_indx[0]][1]-0)**2),
+            distance[active_indx[0], active_indx[1]]/2
+        )
+        self.solution[active_indx[-1]][1] = max(
+            np.sqrt((self.sensors_positions[active_indx[-1]][0]-barier_length)**2 + (self.sensors_positions[active_indx[-1]][1]-0)**2),
+            distance[active_indx[-1], active_indx[-2]]/2
+        )
+
+        for i in range(1,len(active_indx)-1):
+            self.solution[active_indx[i]][1] = max(
+                distance[active_indx[i], active_indx[i-1]]/2,
+                distance[active_indx[i+1], active_indx[i]]/2
+            )
 
         # Shrink
         for i in range(1,len(active_indx)-1):
             # If sensor i's range intersect with two of its adjacents
-            if(distance[active_indx[i]][active_indx[i-1]] < self.solution[active_indx[i]][1]+self.solution[active_indx[i-1]][1]
+            if(distance[active_indx[i],active_indx[i-1]] < self.solution[active_indx[i]][1]+self.solution[active_indx[i-1]][1]
                and
-               distance[active_indx[i]][active_indx[i+1]] < self.solution[active_indx[i]][1]+self.solution[active_indx[i+1]][1]):
+               distance[active_indx[i],active_indx[i+1]] < self.solution[active_indx[i]][1]+self.solution[active_indx[i+1]][1]):
 
                 # The distance between sensor i and i-1's range: d1 = distance(sensor_i, sensor_i-1) - R(sensor_i-1)
-                d1 = distance[active_indx[i]][active_indx[i-1]] - self.solution[active_indx[i-1]][1]
+                d1 = distance[active_indx[i],active_indx[i-1]] - self.solution[active_indx[i-1]][1]
                 # The distance between sensor i and i+1's range: d2 = distance(sensor_i, sensor_i+1) - R(sensor_i+1)
-                d2 = distance[active_indx[i]][active_indx[i+1]] - self.solution[active_indx[i+1]][1]
+                d2 = distance[active_indx[i],active_indx[i+1]] - self.solution[active_indx[i+1]][1]
 
                 self.solution[active_indx[i]][1] = max(d1,d2)
 
+        # for i in range(1,len(active_indx)-1):
+        #     if(distance[active_indx[i],active_indx[i-1]] + self.solution[active_indx[i]][1] < self.solution[active_indx[i-1]][1]
+        #        or
+        #        distance[active_indx[i],active_indx[i+1]] + self.solution[active_indx[i]][1] < self.solution[active_indx[i+1]][1]):
+        #         self.solution[active_indx[i]] = [0,0]
         return
     
     def preprocess_for_LS(self):
@@ -156,14 +163,26 @@ class Population:
         self.pop_size = pop_size
         self.neighborhood_size = neighborhood_size
         self.num_sensors = num_sensors
+        self.sensors_positions = sensors_positions
         self.num_sink_nodes = num_sink_nodes
+        self.sink_nodes_positions = sink_nodes_positions
         self.lambdas = self.generate_lambdas()
         self.pop:list[Individual] = []
         self.ideal_point = [0,0,0]
-        self.nadir_point = [1e9,1e9,1e9]
+        self.nadir_point = [self.num_sensors*(1000**2),self.num_sensors,1000]
         self.EP = []
+        self.distances = np.zeros(shape=(self.num_sensors, self.num_sensors))
+
+        for i in range(num_sensors):
+            for j in range(num_sensors):
+                d =  np.sqrt(
+                    (self.sensors_positions[i][0]-self.sensors_positions[j][0])**2 + 
+                    (self.sensors_positions[i][1]-self.sensors_positions[j][1])**2)
+
+                self.distances[i,j] = self.distances[j,i] = d
+
         for i in range(self.pop_size):
-            self.pop.append(Individual(self.lambdas[i], num_sensors, self.num_sink_nodes, sensors_positions, sink_nodes_positions, self.ideal_point, self.nadir_point))
+            self.pop.append(Individual(self.lambdas[i], num_sensors, self.num_sink_nodes, sensors_positions, sink_nodes_positions, self.ideal_point, self.nadir_point, self.distances))
 
         def find_neighbor():
             # max value for distance to neighbor
@@ -177,7 +196,7 @@ class Population:
         find_neighbor()
 
     def new_individual(self, individual:Individual)->Individual:
-        new = Individual(individual.lambdas, individual.num_sensors, individual.num_sink_nodes, individual.sensors_positions, individual.sink_nodes_positions, self.ideal_point, self.nadir_point)
+        new = Individual(individual.lambdas, individual.num_sensors, individual.num_sink_nodes, individual.sensors_positions, individual.sink_nodes_positions, self.ideal_point, self.nadir_point, self.distances, individual.solution)
 
         return new
 
@@ -200,96 +219,92 @@ class Population:
             for j in range(3):
                 sum += sub_problem_lambdas[j][i]
             res.append([sub_problem_lambdas[j][i]/sum for j in range(3)])
-        
-        return res
+
+        res = np.array(res)
+        indx = np.lexsort((res[:,2],res[:,1],res[:,0]))
+        return res[indx]
     
   
     def forward_local_search(self, individual:Individual):
-        # choose first element in mem_FLS
-        ind = individual.mem_FLS[0]
-        new_sol = individual.solution.copy()
+        sorted_gene_index = [i for i, gene in sorted(enumerate(individual.solution), key=lambda gene: gene[1],reverse=True)]
+        new_sol = self.new_individual(individual)
+        for index in sorted_gene_index:
+            if(index!=0 and index!=len(individual.solution)-1 
+               and individual.solution[index][0]==1
+               and individual.solution[index-1][0]==0 and individual.solution[index+1][0]==0):
 
-        sensor_bw_2 = individual.sensors_positions[ind-2]
-        sensor_bw_1 = individual.sensors_positions[ind-1]
-        sensor_fw_1 = individual.sensors_positions[ind+1]
-        sensor_fw_2 = individual.sensors_positions[ind+2]
+                d1 = np.sqrt((individual.sensors_positions[index][0]-individual.sensors_positions[index-1][0])**2 + (individual.sensors_positions[index][1]-individual.sensors_positions[index-1][1])**2) 
 
-        # calculate distance from center of 2 sensors
-        dist = np.sqrt(np.abs((sensor_bw_1[0]-sensor_fw_1[0])**2 + (sensor_bw_1[1]-sensor_fw_1[1])**2))
+                d2 = np.sqrt((individual.sensors_positions[index][0]-individual.sensors_positions[index+1][0])**2 + (individual.sensors_positions[index][1]-individual.sensors_positions[index+1][1])**2) 
 
-        if (ind >= 2):
-            range_bw = np.sqrt(np.abs((sensor_bw_2[0]-sensor_bw_1[0])**2 + (sensor_bw_2[1]-sensor_bw_1[1])**2))
-            range_bw -= individual.solution[ind-2][1]
-        else:
-            range_bw = 0
-        if (ind <= self.num_sensors-3):
-            range_fw -= np.sqrt(np.abs((sensor_fw_1[0]-sensor_fw_2[0])**2 + (sensor_fw_1[1]-sensor_fw_2[1])**2))
-            range_fw -= individual.solution[ind+2][1]
-        else:
-            range_fw = 0
-        sum_range = range_bw + range_fw
+                r1 = individual.solution[0][1] - d1
+                r2 = individual.solution[0][1] - d2
 
-        if (sum_range <= dist):
-            new_sol[ind-1][1] = dist/2
-            new_sol[ind+1][1] = dist/2
-        else:
-            new_sol[ind-1][1] = range_bw
-            new_sol[ind+1][1] = range_fw
+                new_sol.solution[index] = [0,0]
+                new_sol.solution[index-1][0] = 1
+                new_sol.solution[index+1][0] = 1
 
-        # replace
-        new_sol[ind-1][0] = 1
-        new_sol[ind+1][0] = 1
-        new_sol[ind][0] = 0
+                new_sol.solution[index-1][1] = r1
+                new_sol.solution[index+1][1] = r2
 
-        # compute fitness of new solution
-        new_fitness = individual.compute_fitness(new_sol, self.ideal_point)
-        # TODO repair solution when?
-        if (new_fitness < individual.fitness):
-            individual.solution = new_sol
-            individual.fitness = new_fitness
-            individual.mu = individual.update_utility(new_sol, self.ideal_point)
-            individual.preprocess_for_LS()
+                break
         
+        new_sol.repair_solution()
+        new_sol.compute_fitness(new_sol.solution, self.ideal_point, self.nadir_point)
+        if(new_sol.fitness>individual.fitness):
+            individual.solution = new_sol.solution
+            individual.fitness = new_sol.fitness
+        
+        return 
+
     def backward_local_search(self, individual:Individual):
-        # choose first element in mem_BLS
-        ind = individual.mem_BLS[0]
-        new_sol = individual.solution.copy()
+        active_index = []
+        for i in range(len(individual.solution)):
+            if(individual.solution[i][0]==1):
+                active_index.append(i)
+        if(len(active_index)<3):
+            return
+        d_min = np.inf
+        turn_off = [] # Containts index of 2 sensors that will be deactivate
+        turn_on = 0 # Containst index of sensor that will be activate
+        for i in range(len(active_index)-1):
+            # Get 2 sensors have smallest sum range 
+            if(active_index[i] + active_index[i+1]<d_min):
+                # Check if that 2 sensors have another sleep sensors in between
+                if(active_index[i+1] - active_index[i] > 1):
+                    d_min = individual.solution[active_index[i+1]][1] + individual.solution[active_index[i]][1]
+                    turn_off.clear()
+                    turn_off.append(active_index[i])
+                    turn_off.append(active_index[i+1])
+                    turn_on = int((active_index[i]+active_index[i+1])/2)
 
-        sensor = individual.sensors_positions[ind]
-        sensor_bw_2 = individual.sensors_positions[ind-2]
-        sensor_fw_2 = individual.sensors_positions[ind+2]
+        new_sol = self.new_individual(individual)
+        d1 = np.sqrt((individual.sensors_positions[turn_on][0]-individual.sensors_positions[turn_off[0]][0])**2 + (individual.sensors_positions[turn_on][1]-individual.sensors_positions[turn_off[0]][1])**2) 
 
-        # calculate distance to center of bw2 and fw2 sensors
-        dist_bw = np.sqrt(np.abs((sensor_bw_2[0]-sensor[0])**2 + (sensor_bw_2[1]-sensor[1])**2))
-        dist_bw -= individual.solution[ind-2][1]
-        dist_fw = np.sqrt(np.abs((sensor_fw_2[0]-sensor[0])**2 + (sensor_fw_2[1]-sensor[1])**2))
-        dist_fw -= individual.solution[ind+2][1]
-
-        if (dist_bw < dist_fw):
-            new_sol[ind][1] = dist_fw
-        else:
-            new_sol[ind][1] = dist_bw
-            
-        # replace
-        new_sol[ind][0] = 1
-        new_sol[ind-1][0] = 0
-        new_sol[ind+1][0] = 0
+        d2 = np.sqrt((individual.sensors_positions[turn_on][0]-individual.sensors_positions[turn_off[1]][0])**2 + (individual.sensors_positions[turn_on][1]-individual.sensors_positions[turn_off[0]][1])**2) 
         
-        # compute fitness of new solution
-        new_fitness = individual.compute_fitness(new_sol, self.ideal_point)
-        # TODO repair solution when?
-        if (new_fitness < individual.fitness):
-            individual.solution = new_sol
-            individual.fitness = new_fitness
-            individual.mu = individual.update_utility(new_sol, self.ideal_point)
-            individual.preprocess_for_LS()
+        r1 = d1 + individual.solution[turn_off[0]][1]
+        r2 = d2 + individual.solution[turn_off[1]][1]
+        r = max(r1,r2)
+
+        new_sol.solution[turn_off[0]] = [0,0]
+        new_sol.solution[turn_off[1]] = [0,0]
+        new_sol.solution[turn_on] = [1,r]
+
+        new_sol.repair_solution()
+        new_sol.compute_fitness(new_sol.solution,self.ideal_point,self.nadir_point)
+        if(new_sol.fitness>individual.fitness):
+            individual.solution = new_sol.solution
+            individual.fitness = new_sol.fitness
+
+        return 
 
     def local_search(self, k):
         # TODO fix logic to 2016 paper
-        fw_subproblem = self.pop[k+1]
-        bw_subproblem = self.pop[k-1]
-        self.forward_local_search(fw_subproblem)
-        self.backward_local_search(bw_subproblem)
+        if(k<self.pop_size-1):
+            self.forward_local_search(self.pop[k+1])
+        if(k>0):
+            self.backward_local_search(self.pop[k-1])
 
 
     def selection(self, k=16)->list[Individual,int]:
@@ -305,7 +320,7 @@ class Population:
         for i in range(cross_point,len(individual.solution)):
             new_individual.solution[i] = breed.solution[i]
 
-        individual.compute_fitness(individual.solution, self.ideal_point, self.nadir_point)
+        new_individual.compute_fitness(new_individual.solution, self.ideal_point, self.nadir_point)
         return new_individual
 
     def update_utility(self, individuals:list[Individual]):
@@ -318,11 +333,12 @@ class Population:
         neighbors = individual.neighbor
         # evaluate solution k in neighbor sub-problems
         for neighbor in neighbors:
-            new_fitness = neighbor.compute_fitness(individual.solution, self.ideal_point)
-            if(new_fitness<neighbor.fitness):
+            new_sol = self.new_individual(neighbor)
+            new_fitness = new_sol.compute_fitness(individual.solution, self.ideal_point, self.nadir_point)
+            if(new_fitness>neighbor.fitness):
                 neighbor.solution = individual.solution
                 neighbor.fitness = new_fitness
-                neighbor.mu = neighbor.update_utility(individual.solution, self.ideal_point)
+                neighbor.mu = neighbor.update_utility(individual.solution, self.ideal_point, self.nadir_point)
                 # if 1 solution updated, preprocess for LS again
                 neighbor.preprocess_for_LS()
                 # print("Neighbor updated", neighbor.solution, neighbor.fitness)
@@ -370,16 +386,16 @@ class Population:
         # Offspring generation 
         choosen_neighbor = np.random.choice(sub_problem.neighbor)
         child = self.crossover(sub_problem, choosen_neighbor)
-        if(child.fitness<sub_problem.fitness):
+        # Mutation
+        child.mutation()
+        # Repair solution
+        child.repair_solution()
+        child.compute_fitness(child.solution, self.ideal_point, self.nadir_point)
+
+        if(child.fitness > sub_problem.fitness):
             sub_problem.update_utility(child.solution, self.ideal_point, self.nadir_point)
             sub_problem.solution = child.solution
-            sub_problem.compute_fitness(sub_problem.solution,self.ideal_point, self.nadir_point)
-
-        # Mutation
-        sub_problem.mutation()
-
-        # Repair solution
-        sub_problem.repair_solution()
+            sub_problem.compute_fitness(sub_problem.solution, self.ideal_point, self.nadir_point)
 
         self.local_search(sub_problem_index)
         self.update_neighbor_solution(sub_problem)
