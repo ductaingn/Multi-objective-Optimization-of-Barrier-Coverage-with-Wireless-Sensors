@@ -333,7 +333,8 @@ class Population:
         neighbors = individual.neighbor
         # evaluate solution k in neighbor sub-problems
         for neighbor in neighbors:
-            new_fitness = neighbor.compute_fitness(individual.solution, self.ideal_point, self.nadir_point)
+            new_sol = self.new_individual(neighbor)
+            new_fitness = new_sol.compute_fitness(individual.solution, self.ideal_point, self.nadir_point)
             if(new_fitness>neighbor.fitness):
                 neighbor.solution = individual.solution
                 neighbor.fitness = new_fitness
@@ -397,7 +398,7 @@ class Population:
             sub_problem.compute_fitness(sub_problem.solution, self.ideal_point, self.nadir_point)
 
         self.local_search(sub_problem_index)
-        # self.update_neighbor_solution(sub_problem)
+        self.update_neighbor_solution(sub_problem)
 
         # Update EP
         self.update_EP(sub_problem)

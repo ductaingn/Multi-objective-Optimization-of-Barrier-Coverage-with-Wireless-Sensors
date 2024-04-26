@@ -9,7 +9,7 @@ if __name__ == "__main__":
 	NEIGHBORHOOD_SIZE = 3
 	NUM_SENSORS = 100
 	NUM_SINK_NODES = 1
-	NUM_EVALUATION = 100
+	NUM_EVALUATION = 10000
 	# sensors_x = np.random.uniform(low=0,high=1000,size=(NUM_SENSORS))
 	# sensors_y = np.random.uniform(low=0,high=10,size=(NUM_SENSORS))
 	# sensors_positions = np.array([[sensors_x[i],sensors_y[i]] for i in range(NUM_SENSORS)])
@@ -26,12 +26,20 @@ if __name__ == "__main__":
 	pop = model.Population(POP_SIZE,NEIGHBORHOOD_SIZE,NUM_SENSORS,sensors_positions,NUM_SINK_NODES,sink_nodes_positions)
 
 	fitness = []
+	generations = []
 	for i in range(NUM_EVALUATION):
 		pop.reproduct()
+		f = []
+		for indi in pop.pop:
+			f.append(indi.f)
+		generations.append(f)
 		best = sorted(pop.pop,key= lambda x:x.fitness)[-1]
 		fitness.append(best.fitness)
 		if(i%100==0):
 			print(i/NUM_EVALUATION*100,'%')
+	
+	with open('generations.pickle','wb') as file:
+		pickle.dump(generations,file)
 	with open('result.pickle','wb') as file:
 		pickle.dump(pop,file)
 	with open('sensor_positions.pickle','wb') as file:
