@@ -2,8 +2,13 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
 import model
+import pickle
 
 def Plot_solution(sensors_positions:list[list[float,float]], solution:list[list[int,float]]):
+    '''
+    # Draw a solution 
+    Draw solution's all active sensors with its position and sensing range
+    '''
     fix, ax = plt.subplots()
     active_x = []
     active_y = []
@@ -20,7 +25,11 @@ def Plot_solution(sensors_positions:list[list[float,float]], solution:list[list[
     ax.set_aspect('equal',adjustable='box')
     plt.show()
 
-def Plot_objectives(generations):
+
+def Scatter_objectives(objectives_by_generations):
+    '''
+    # Scatter objectives by generations
+    '''
     # Choose a colormap (replace 'viridis' with your preferred choice)
     cmap = plt.cm.winter
     # Create an array of values from 0 to 100 (one for each point)
@@ -31,10 +40,10 @@ def Plot_objectives(generations):
     fig = plt.figure()
     # ax = fig.add_subplot(projection='3d')
     ax = fig.add_subplot(projection='3d')
-    for i in range(len(generations)):
+    for i in range(len(objectives_by_generations)):
         if((i+1)%1000==0):
             f = []
-            for individual in generations[i]:
+            for individual in objectives_by_generations[i]:
                 f.append([individual[0], individual[1], individual[2]])
             f = np.array(f)
             ax.scatter(f[:,0],f[:,1], f[:,2], c = color[int((i+1)/1000)-1],label=f'Gen #{i+1}')
@@ -45,3 +54,30 @@ def Plot_objectives(generations):
     plt.legend()
     plt.title('Objective funtions value over generations')
     plt.show()
+
+
+def Plot_fitness(num_sensors, num_results, length=1000, width=50, distribution='uniform'):
+    '''
+    # Plot fitness of one dataset with mean and standard deviation
+    Prerequisites: Results available
+    Arguments:
+        num_sensors: Number of sensors
+        num_results: Number of fitness files
+    '''
+    fitneses = []
+    for i in range(num_results):
+        try:
+            with open(f'Results/{distribution}/{width}x{length}unit/{num_sensors}sensors/fitness_{i}.pickle','rb') as file:
+                fitneses.append(pickle.dump(file))
+        except FileNotFoundError:
+            print('FileNotFoundError')
+            return
+    
+    fitneses = np.array(fitneses)
+    mean = np.mean(fitneses,axis=0)
+    std = np.std(fitneses,axis=0)
+    
+    fix, ax = plt.subplots()
+    x = np.arange(len(fitneses[0]))
+    ax.plot(x,mean)
+    ax.fill_between(x, mean-std, mean+std, alpha =0.2)
