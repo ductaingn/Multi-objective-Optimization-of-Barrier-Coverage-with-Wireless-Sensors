@@ -60,6 +60,7 @@ def Plot_fitness(num_sensors, num_results, length=1000, width=50, distribution='
     '''
     # Plot fitness of one dataset with mean and standard deviation
     Prerequisites: Results available
+    
     Arguments:
         num_sensors: Number of sensors
         num_results: Number of fitness files
