@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Plot
 import pickle
+import copy
 
 if __name__ == "__main__":
 	POP_SIZE = 20
@@ -31,7 +32,7 @@ if __name__ == "__main__":
 		pop.reproduct()
 		f = []
 		for indi in pop.pop:
-			f.append(indi.f)
+			f.append(copy.deepcopy(indi.f))
 		generations.append(f)
 		best = sorted(pop.pop,key= lambda x:x.fitness)[-1]
 		fitness.append(best.fitness)
