@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
+import copy
 
 # 1 Individual contains 1 sub-problem and 1 solution
 class Individual:
@@ -108,6 +109,25 @@ class Individual:
             )
 
         # Shrink
+        length = len(active_indx)
+        i = 1
+        while(i<length-1):
+            if(distance[active_indx[i],active_indx[i-1]] + self.solution[active_indx[i]][1] <= self.solution[active_indx[i-1]][1]
+               or
+               distance[active_indx[i],active_indx[i+1]] + self.solution[active_indx[i]][1] <= self.solution[active_indx[i+1]][1]):
+                self.solution[active_indx[i]] = [0,0]
+                active_indx.pop(i)
+                length-=1
+                if(i>1):
+                    i-=1
+                continue
+            i+=1
+        
+        active_indx = []
+        for i in range(len(self.sensors_positions)):            
+            if(self.solution[i][0]==1):
+                active_indx.append(i)
+
         for i in range(1,len(active_indx)-1):
             # If sensor i's range intersect with two of its adjacents
             if(distance[active_indx[i],active_indx[i-1]] < self.solution[active_indx[i]][1]+self.solution[active_indx[i-1]][1]
@@ -121,11 +141,6 @@ class Individual:
 
                 self.solution[active_indx[i]][1] = max(d1,d2)
 
-        # for i in range(1,len(active_indx)-1):
-        #     if(distance[active_indx[i],active_indx[i-1]] + self.solution[active_indx[i]][1] < self.solution[active_indx[i-1]][1]
-        #        or
-        #        distance[active_indx[i],active_indx[i+1]] + self.solution[active_indx[i]][1] < self.solution[active_indx[i+1]][1]):
-        #         self.solution[active_indx[i]] = [0,0]
         return
     
     def preprocess_for_LS(self):
@@ -169,7 +184,7 @@ class Population:
         self.lambdas = self.generate_lambdas()
         self.pop:list[Individual] = []
         self.ideal_point = [0,0,0]
-        self.nadir_point = [self.num_sensors*(1000**2),self.num_sensors,1000]
+        self.nadir_point = [self.num_sensors*(1000**1)/10,self.num_sensors,1000]
         self.EP = []
         self.distances = np.zeros(shape=(self.num_sensors, self.num_sensors))
 
@@ -196,7 +211,9 @@ class Population:
         find_neighbor()
 
     def new_individual(self, individual:Individual)->Individual:
-        new = Individual(individual.lambdas, individual.num_sensors, individual.num_sink_nodes, individual.sensors_positions, individual.sink_nodes_positions, self.ideal_point, self.nadir_point, self.distances, individual.solution)
+        # Pass by value
+        sol = [copy.deepcopy(row) for row in individual.solution]
+        new = Individual(individual.lambdas, individual.num_sensors, individual.num_sink_nodes, individual.sensors_positions, individual.sink_nodes_positions, self.ideal_point, self.nadir_point, self.distances,sol)
 
         return new
 
@@ -209,20 +226,17 @@ class Population:
     
     # Genrate uniformly spread weighted vectors lambda 
     def generate_lambdas(self):
-        sub_problem_lambdas = []
-        for _ in range(3):
-            sub_problem_lambdas.append(np.random.uniform(0,1,self.pop_size))
-
+        weights = []
+        for i in range(1,9):
+            for j in range(i+1,10):
+                weights.append([i,j-i,10-j])
         res = []
-        for i in range(self.pop_size):
-            sum = 0
-            for j in range(3):
-                sum += sub_problem_lambdas[j][i]
-            res.append([sub_problem_lambdas[j][i]/sum for j in range(3)])
-
+        for i in range(int(self.pop_size/2)):
+            res.append(weights[i])
+            res.append(weights[-i-1])
         res = np.array(res)
-        indx = np.lexsort((res[:,2],res[:,1],res[:,0]))
-        return res[indx]
+        indx = np.lexsort((res[:,2],res[:,0],res[:,1]))
+        return res[indx]/10
     
   
     def forward_local_search(self, individual:Individual):
@@ -252,8 +266,9 @@ class Population:
         new_sol.repair_solution()
         new_sol.compute_fitness(new_sol.solution, self.ideal_point, self.nadir_point)
         if(new_sol.fitness>individual.fitness):
-            individual.solution = new_sol.solution
+            individual.solution = [copy.deepcopy(row) for row in new_sol.solution]
             individual.fitness = new_sol.fitness
+            individual.f = new_sol.f.copy()
         
         return 
 
@@ -294,8 +309,9 @@ class Population:
         new_sol.repair_solution()
         new_sol.compute_fitness(new_sol.solution,self.ideal_point,self.nadir_point)
         if(new_sol.fitness>individual.fitness):
-            individual.solution = new_sol.solution
+            individual.solution = [copy.deepcopy(row) for row in new_sol.solution]
             individual.fitness = new_sol.fitness
+            individual.f = new_sol.f.copy()
 
         return 
 
@@ -318,7 +334,7 @@ class Population:
         cross_point = int(len(individual.solution)/2)
         new_individual = self.new_individual(individual)
         for i in range(cross_point,len(individual.solution)):
-            new_individual.solution[i] = breed.solution[i]
+            new_individual.solution[i] = copy.deepcopy(breed.solution[i])
 
         new_individual.compute_fitness(new_individual.solution, self.ideal_point, self.nadir_point)
         return new_individual
@@ -336,9 +352,10 @@ class Population:
             new_sol = self.new_individual(neighbor)
             new_fitness = new_sol.compute_fitness(individual.solution, self.ideal_point, self.nadir_point)
             if(new_fitness>neighbor.fitness):
-                neighbor.solution = individual.solution
+                neighbor.solution = [copy.deepcopy(row) for row in individual.solution]
+                neighbor.f = individual.f.copy()
                 neighbor.fitness = new_fitness
-                neighbor.mu = neighbor.update_utility(individual.solution, self.ideal_point, self.nadir_point)
+                # neighbor.mu = neighbor.update_utility(individual.solution, self.ideal_point, self.nadir_point)
                 # if 1 solution updated, preprocess for LS again
                 neighbor.preprocess_for_LS()
                 # print("Neighbor updated", neighbor.solution, neighbor.fitness)
@@ -393,14 +410,16 @@ class Population:
         child.compute_fitness(child.solution, self.ideal_point, self.nadir_point)
 
         if(child.fitness > sub_problem.fitness):
-            sub_problem.update_utility(child.solution, self.ideal_point, self.nadir_point)
-            sub_problem.solution = child.solution
-            sub_problem.compute_fitness(sub_problem.solution, self.ideal_point, self.nadir_point)
+            # sub_problem.update_utility(child.solution, self.ideal_point, self.nadir_point)
+            sub_problem.solution = [copy.deepcopy(row) for row in child.solution]
+            sub_problem.f = copy.deepcopy(child.f)
+            sub_problem.fitness = child.fitness
+            # sub_problem.compute_fitness(sub_problem.solution, self.ideal_point, self.nadir_point)
 
         self.local_search(sub_problem_index)
         self.update_neighbor_solution(sub_problem)
 
         # Update EP
-        self.update_EP(sub_problem)
+        # self.update_EP(sub_problem)
         
         return

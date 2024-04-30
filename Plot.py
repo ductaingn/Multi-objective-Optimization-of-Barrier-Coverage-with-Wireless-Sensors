@@ -41,5 +41,7 @@ def Plot_objectives(generations):
     ax.view_init(azim=45,elev = 30)
     ax.set_xlabel('f_1')
     ax.set_ylabel('f_2')
+    ax.set_zlabel('f_3')
+    plt.legend()
     plt.title('Objective funtions value over generations')
     plt.show()
