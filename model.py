@@ -234,7 +234,7 @@ class Population:
             res.append(weights[-i-1])
         res = np.array(res)
         indx = np.lexsort((res[:,2],res[:,0],res[:,1]))
-        return res[indx]/10
+        return np.flip(res[indx],0)/10
     
   
     def forward_local_search(self, individual:Individual):
@@ -266,7 +266,7 @@ class Population:
         if(new_sol.fitness>individual.fitness):
             individual.solution = [copy.deepcopy(row) for row in new_sol.solution]
             individual.fitness = new_sol.fitness
-            individual.f = new_sol.f.copy()
+            individual.f = copy.deepcopy(new_sol.f)
         
         return 
 
@@ -282,7 +282,7 @@ class Population:
         turn_on = 0 # Containst index of sensor that will be activate
         for i in range(len(active_index)-1):
             # Get 2 sensors have smallest sum range 
-            if(active_index[i] + active_index[i+1]<d_min):
+            if(individual.solution[active_index[i]][1] + individual.solution[active_index[i+1]][1]<d_min):
                 # Check if that 2 sensors have another sleep sensors in between
                 if(active_index[i+1] - active_index[i] > 1):
                     d_min = individual.solution[active_index[i+1]][1] + individual.solution[active_index[i]][1]
@@ -309,7 +309,7 @@ class Population:
         if(new_sol.fitness>individual.fitness):
             individual.solution = [copy.deepcopy(row) for row in new_sol.solution]
             individual.fitness = new_sol.fitness
-            individual.f = new_sol.f.copy()
+            individual.f = copy.deepcopy(new_sol.f)
 
         return 
 
@@ -352,7 +352,7 @@ class Population:
             new_fitness = new_sol.compute_fitness(individual.solution, self.ideal_point, self.nadir_point)
             if(new_fitness>neighbor.fitness):
                 neighbor.solution = [copy.deepcopy(row) for row in individual.solution]
-                neighbor.f = individual.f.copy()
+                neighbor.f = copy.deepcopy(individual.f)
                 neighbor.fitness = new_fitness
                 # neighbor.mu = neighbor.update_utility(individual.solution, self.ideal_point, self.nadir_point)
                 # if 1 solution updated, preprocess for LS again
