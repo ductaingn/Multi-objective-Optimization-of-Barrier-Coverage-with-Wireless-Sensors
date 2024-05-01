@@ -11,9 +11,9 @@ if __name__ == "__main__":
 	NUM_SENSORS = 100
 	NUM_SINK_NODES = 1
 	NUM_GENERATION = 50000
-	LENGTH, WIDTH = 10000, 50
+	LENGTH, WIDTH = 1000, 50
 
-	with open(f'Datasets/uniform/{WIDTH}x{LENGTH}units/{NUM_SENSORS}sensors/sensor_positions_0.pickle','rb') as file:
+	with open(f'Datasets/uniform/{WIDTH}x{LENGTH}unit/{NUM_SENSORS}sensors/sensors_positions_0.pickle','rb') as file:
 		sensors_positions = pickle.load(file)
 	with open('Datasets/sink_nodes_positions.pickle','rb') as file:
 		sink_nodes_positions = pickle.load(file)
@@ -37,7 +37,7 @@ if __name__ == "__main__":
 	plt.show()
 	
 	# Change file name everytime!
-	with open(f'Result/uniform/{WIDTH}x{LENGTH}units/{NUM_SENSORS}sensors/objectives_by_generations_0.pickle','wb') as file:
+	with open(f'Result/uniform/{WIDTH}x{LENGTH}unit/{NUM_SENSORS}sensors/objectives_by_generations_0.pickle','wb') as file:
 		pickle.dump(objectives_by_generations,file)
-	with open(f'Result/uniform/{WIDTH}x{LENGTH}units/{NUM_SENSORS}sensors/fitness_0.pickle','wb') as file:
+	with open(f'Result/uniform/{WIDTH}x{LENGTH}unit/{NUM_SENSORS}sensors/fitness_0.pickle','wb') as file:
 		pickle.dump(fitness,file)

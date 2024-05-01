@@ -59,7 +59,6 @@ class Individual:
 
         self.f = f
         gte = max([self.lambdas[i]*abs(f[i]-ideal_point[i]) for i in range(3)])
-        # print(gte)
         self.fitness = 1/gte
         return self.fitness
     
@@ -144,7 +143,6 @@ class Individual:
         return
     
     def preprocess_for_LS(self):
-        # print(self.solution)
         tmp_min_range = 1e9
         # search in a solution for a gene with 2 genes before and after it having range = 0
         for i in range(1,self.num_sensors-1):
@@ -159,8 +157,7 @@ class Individual:
                 else: self.mem_BLS.append(i)
         # sort mem_FLS and mem_BLS in descending order of range
         self.mem_FLS.sort(key=lambda x: self.solution[x][1], reverse=True)
-        # print(self.mem_FLS)
-        # print(self.mem_BLS)
+
     
 
     def update_utility(self, new_solution, ideal_point, nadir_point):
@@ -227,6 +224,7 @@ class Population:
     # Genrate uniformly spread weighted vectors lambda 
     def generate_lambdas(self):
         weights = []
+        # 36 weight vectors
         for i in range(1,9):
             for j in range(i+1,10):
                 weights.append([i,j-i,10-j])
@@ -316,8 +314,8 @@ class Population:
         return 
 
     def local_search(self, k):
-        # TODO fix logic to 2016 paper
         if(k<self.pop_size-1):
+            # idea: sub-problem k+1 assigns smaller weight to f2 
             self.forward_local_search(self.pop[k+1])
         if(k>0):
             self.backward_local_search(self.pop[k-1])
@@ -327,9 +325,10 @@ class Population:
         # k is number of individuals in selection pool
         indi_index = list(np.random.choice(range(0,self.pop_size),size=k))
         pool = [[self.pop[i],i] for i in indi_index]
-
+        # sort pool by sub-problem's index, take last element
         return sorted(pool, key=lambda x:pool[1])[-1]
     
+    # copy first half of solution from individual, second half from breed to new_individual
     def crossover(self, individual:Individual, breed:Individual)->Individual:
         cross_point = int(len(individual.solution)/2)
         new_individual = self.new_individual(individual)
@@ -358,7 +357,6 @@ class Population:
                 # neighbor.mu = neighbor.update_utility(individual.solution, self.ideal_point, self.nadir_point)
                 # if 1 solution updated, preprocess for LS again
                 neighbor.preprocess_for_LS()
-                # print("Neighbor updated", neighbor.solution, neighbor.fitness)
     
     def update_EP(self, individual: Individual):
         new_EP = []

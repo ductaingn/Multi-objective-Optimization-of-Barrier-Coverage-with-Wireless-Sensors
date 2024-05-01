@@ -4,15 +4,18 @@ import pickle
 
 def generate_positions(number_sensors, length=1000, width=50, distribution='uniform'):
     if(distribution=='uniform'):
+        # x-coordinate from 0 to length of border
         sensors_x = np.random.uniform(low=0,high=length,size=(number_sensors))
+        # y-coordinate from -width/2 to width/2
         sensors_y = np.random.uniform(low=-width/2,high=width/2,size=(number_sensors))
         sensors_positions = np.array([[sensors_x[i],sensors_y[i]] for i in range(number_sensors)])
         sensors_positions.sort(axis=0)
 
     if(distribution=='gauss'):
-        mu = length/2
-        sigma = mu/5
+        mu = length/2  # Mean of the Gaussian distribution, set to half of the length
+        sigma = mu/5  # Standard deviation of the Gaussian distribution, set to one-fifth of the mean
         lower, upper = 0, length
+        # Generating x-coordinates using a truncated normal distribution
         sensors_x = np.array(stats.truncnorm((lower-mu)/sigma,(upper-mu)/sigma,loc=mu, scale=sigma).rvs(number_sensors))
         sensors_y = np.random.uniform(low=-width/2,high=width/2,size=(number_sensors))
         sensors_positions = np.array([[sensors_x[i],sensors_y[i]] for i in range(number_sensors)])
@@ -30,6 +33,6 @@ for i in range(5):
 
 
 with open('Datasets/sink_nodes_positions.pickle','wb') as file:
-    sink_node_pos = [-25,500]
+    sink_node_pos = [[-25,500]]
     pickle.dump(sink_node_pos,file)
         
