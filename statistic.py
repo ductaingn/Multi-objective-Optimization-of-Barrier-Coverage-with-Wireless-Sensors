@@ -46,7 +46,7 @@ if __name__ == "__main__":
     mean_fitness_by_generation = mean_fitness_accumulator / NUM_RUNS
     mean_best_fitness_by_generation = mean_best_fitness_accumulator / NUM_RUNS
 
-    result_dir = f'Result/uniform/{WIDTH}x{LENGTH}unit/{NUM_SENSORS}sensors/'
+    result_dir = f'Results/uniform/{WIDTH}x{LENGTH}unit/{NUM_SENSORS}sensors/'
     os.makedirs(result_dir, exist_ok=True)
     np.savetxt(os.path.join(result_dir, 'mean_fitness.txt'), mean_fitness_by_generation)
     np.savetxt(os.path.join(result_dir, 'mean_best_fitness.txt'), mean_best_fitness_by_generation)
