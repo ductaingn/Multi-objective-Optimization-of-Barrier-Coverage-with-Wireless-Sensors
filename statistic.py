@@ -8,10 +8,10 @@ import matplotlib.pyplot as plt
 if __name__ == "__main__":
     POP_SIZE = 20
     NEIGHBORHOOD_SIZE = 3
-    NUM_SENSORS = 100
+    NUM_SENSORS = 300
     NUM_SINK_NODES = 1
-    NUM_GENERATION = 500
-    NUM_RUNS = 3
+    NUM_GENERATION = 5000
+    NUM_RUNS = 5
     LENGTH, WIDTH = 1000, 50
 
     mean_fitness_accumulator = np.zeros(NUM_GENERATION)

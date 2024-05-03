@@ -1,3 +1,4 @@
+import random
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 import copy
@@ -10,10 +11,7 @@ class Individual:
         self.lambdas = lambdas
         self.sensors_positions = sensors_positions
         self.sink_nodes_positions = sink_node_positions
-        self.mu = 0.99
-        # first element of mem_FLS is max range 
-        self.mem_FLS = []
-        self.mem_BLS = []
+        self.mu = 1
         self.distances = distances
         
         # Random solution
@@ -33,8 +31,6 @@ class Individual:
         self.neighbor:list[Individual] = []
 
         self.distances = distances
-
-        self.preprocess_for_LS()
 
 
     def compute_fitness(self, solution, ideal_point, nadir_point):
@@ -141,31 +137,15 @@ class Individual:
                 self.solution[active_indx[i]][1] = max(d1,d2)
 
         return
-    
-    def preprocess_for_LS(self):
-        tmp_min_range = 1e9
-        # search in a solution for a gene with 2 genes before and after it having range = 0
-        for i in range(1,self.num_sensors-1):
-            fw = self.solution[i+1]
-            bw = self.solution[i-1]
-            if(self.solution[i][0]==1 and bw[0]==0 and fw[0]==0):
-                self.mem_FLS.append(i)
-            if(self.solution[i][0]==0 and bw[0]==1 and fw[0]==1):
-                if (bw[0] + fw[0]<tmp_min_range):
-                    tmp_min_range = bw[0] + fw[0]
-                    self.mem_BLS.insert(0, i)
-                else: self.mem_BLS.append(i)
-        # sort mem_FLS and mem_BLS in descending order of range
-        self.mem_FLS.sort(key=lambda x: self.solution[x][1], reverse=True)
-
-    
 
     def update_utility(self, new_solution, ideal_point, nadir_point):
         delta_i = self.compute_fitness(new_solution, ideal_point, nadir_point) - self.fitness
         if(delta_i>0.001):
-            return 1
+            self.mu = 1
         else:
-            return 0.99 + 0.01*delta_i/0.001
+            self.mu = 0.99 + 0.01*delta_i/0.001
+        # print("update utility", self.mu)
+        return self.mu
 
     def add_neighbor(self, individual):
         self.neighbor.append(individual)
@@ -324,15 +304,27 @@ class Population:
     def selection(self, k=16)->list[Individual,int]:
         # k is number of individuals in selection pool
         indi_index = list(np.random.choice(range(0,self.pop_size),size=k))
-        pool = [[self.pop[i],i] for i in indi_index]
-        # sort pool by sub-problem's index, take last element
+        pool = [[self.pop[i], self.pop[i].mu, i] for i in indi_index]
+        # choose subproblem based on utility
         return sorted(pool, key=lambda x:pool[1])[-1]
-    
+
     # copy first half of solution from individual, second half from breed to new_individual
-    def crossover(self, individual:Individual, breed:Individual)->Individual:
+    def crossover1(self, individual:Individual, breed:Individual)->Individual:
         cross_point = int(len(individual.solution)/2)
         new_individual = self.new_individual(individual)
         for i in range(cross_point,len(individual.solution)):
+            new_individual.solution[i] = copy.deepcopy(breed.solution[i])
+
+        new_individual.compute_fitness(new_individual.solution, self.ideal_point, self.nadir_point)
+        return new_individual
+    
+    def crossover(self, individual:Individual, breed:Individual)->Individual:
+        # random 2 point crossover
+        cross_point1 = random.randint(0,len(individual.solution)-1)
+        cross_point2 = random.randint(cross_point1,len(individual.solution)-1)
+
+        new_individual = self.new_individual(individual)
+        for i in range(cross_point1,cross_point2):
             new_individual.solution[i] = copy.deepcopy(breed.solution[i])
 
         new_individual.compute_fitness(new_individual.solution, self.ideal_point, self.nadir_point)
@@ -355,8 +347,6 @@ class Population:
                 neighbor.f = copy.deepcopy(individual.f)
                 neighbor.fitness = new_fitness
                 # neighbor.mu = neighbor.update_utility(individual.solution, self.ideal_point, self.nadir_point)
-                # if 1 solution updated, preprocess for LS again
-                neighbor.preprocess_for_LS()
     
     def update_EP(self, individual: Individual):
         new_EP = []
@@ -396,7 +386,7 @@ class Population:
     
     def reproduct(self):
         # Select 1 sub-problem
-        sub_problem, sub_problem_index = self.selection()
+        sub_problem, _ , sub_problem_index = self.selection()
 
         # Offspring generation 
         choosen_neighbor = np.random.choice(sub_problem.neighbor)
@@ -408,7 +398,7 @@ class Population:
         child.compute_fitness(child.solution, self.ideal_point, self.nadir_point)
 
         if(child.fitness > sub_problem.fitness):
-            # sub_problem.update_utility(child.solution, self.ideal_point, self.nadir_point)
+            sub_problem.update_utility(child.solution, self.ideal_point, self.nadir_point)
             sub_problem.solution = [copy.deepcopy(row) for row in child.solution]
             sub_problem.f = copy.deepcopy(child.f)
             sub_problem.fitness = child.fitness

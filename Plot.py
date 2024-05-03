@@ -99,3 +99,6 @@ def Plot_fitness(num_sensors, num_results, name_pattern='best_indi_fitness', nam
     ax.set_ylim(1,10)
     plt.title(f'{name_pattern} Mean and Standard deviation, {num_sensors} sensors, {distribution} distribution')
     plt.show()
+
+if __name__ == "__main__":
+    Plot_fitness(100,5, name_pattern='best_indi_fitness')
