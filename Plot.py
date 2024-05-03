@@ -65,7 +65,7 @@ def Scatter_objectives(objectives_by_generations, num_generations):
     plt.show()
 
 
-def Plot_fitness(num_sensors, num_results, name_pattern='best_indi_fitness', length=1000, width=50, distribution='uniform'):
+def Plot_fitness(num_sensors, num_results, name_pattern='best_indi_fitness', name_dataset = 'dataset_0', length=1000, width=50, distribution='uniform'):
     '''
     # Plot fitness of one dataset with mean and standard deviation
     Prerequisites: Results available
@@ -74,14 +74,16 @@ def Plot_fitness(num_sensors, num_results, name_pattern='best_indi_fitness', len
         num_sensors: Number of sensors
         num_results: Number of fitness files
         name_pattern: Pattern of result file name, eg: 'best_indi_fitness' 
+        name_dataset: Name of the folder contains fitness files
     '''
     fitneses = []
     for i in range(num_results):
         try:
-            with open(f'Results/{distribution}/{width}x{length}unit/{num_sensors}sensors/{name_pattern}_{i}.pickle','rb') as file:
+            with open(f'Results/{distribution}/{width}x{length}unit/{num_sensors}sensors/{name_dataset}/{name_pattern}_{i}.pickle','rb') as file:
                 fitneses.append(pickle.load(file))
         except FileNotFoundError:
             print('FileNotFoundError')
+            print(f'Results/{distribution}/{width}x{length}unit/{num_sensors}sensors/{name_pattern}_{i}.pickle not existed')
             return
     
     fitneses = np.array(fitneses)
@@ -94,6 +96,6 @@ def Plot_fitness(num_sensors, num_results, name_pattern='best_indi_fitness', len
     ax.fill_between(x, mean-std, mean+std, alpha =0.2)
     ax.set_xlabel('Generation')
     ax.set_ylabel('Fitness')
-    ax.set_ylim(1,7)
-    plt.title(f'{name_pattern} Mean and Standard deviation')
+    ax.set_ylim(1,10)
+    plt.title(f'{name_pattern} Mean and Standard deviation, {num_sensors} sensors, {distribution} distribution')
     plt.show()

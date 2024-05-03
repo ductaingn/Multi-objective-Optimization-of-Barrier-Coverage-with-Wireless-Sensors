@@ -8,14 +8,14 @@ import copy
 if __name__ == "__main__":
 	POP_SIZE = 20
 	NEIGHBORHOOD_SIZE = 3
-	NUM_SENSORS = 100
+	NUM_SENSORS = 300
 	NUM_SINK_NODES = 1
 	NUM_GENERATION = 50000
 	LENGTH, WIDTH = 1000, 50
 	NUM_EPOCH = 5
 
 	# Load positions
-	with open(f'Datasets/uniform/{WIDTH}x{LENGTH}unit/{NUM_SENSORS}sensors/sensors_positions_0.pickle','rb') as file:
+	with open(f'Datasets/uniform/{WIDTH}x{LENGTH}unit/{NUM_SENSORS}sensors/sensors_positions_1.pickle','rb') as file:
 		sensors_positions = pickle.load(file)
 	with open('Datasets/sink_nodes_positions.pickle','rb') as file:
 		sink_nodes_positions = pickle.load(file)
