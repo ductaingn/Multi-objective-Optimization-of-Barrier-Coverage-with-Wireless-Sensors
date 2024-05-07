@@ -234,7 +234,7 @@ class Population:
             res.append(weights[-i-1])
         res = np.array(res)
         indx = np.lexsort((res[:,2],res[:,0],res[:,1]))
-        return np.flip(res[indx],0)/10
+        return res[indx]/10
     
   
     def forward_local_search(self, individual:Individual):
@@ -322,6 +322,9 @@ class Population:
 
 
     def selection(self, k=16)->list[Individual,int]:
+        '''
+        Return an Individual and its numerical order in population
+        '''
         # k is number of individuals in selection pool
         indi_index = list(np.random.choice(range(0,self.pop_size),size=k))
         pool = [[self.pop[i],i] for i in indi_index]
