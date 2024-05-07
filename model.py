@@ -27,6 +27,7 @@ class Individual:
             self.repair_solution()
 
         self.f = [1e9,1e9,1e9]
+        self.f_raw = [0,0,0]
         self.fitness = self.compute_fitness(self.solution, ideal_point, nadir_point)
         self.neighbor:list[Individual] = []
 
@@ -48,6 +49,9 @@ class Individual:
                 f[2] += nearest_sink_node_distance
               
         f[2]/=f[1]
+        # print(f)
+        self.f_raw = copy.deepcopy(f)
+        # print(self.f_raw)
 
         # Normalizing
         for i in range(3):
@@ -408,6 +412,6 @@ class Population:
         self.update_neighbor_solution(sub_problem)
 
         # Update EP
-        # self.update_EP(sub_problem)
+        self.update_EP(sub_problem)
         
         return

@@ -6,12 +6,38 @@ import Plot
 import pickle
 import copy
 
+# def write_to_csv(i, epoch, best, best_indi_fitness, pop_avg_fitness, last_id):
+def write_to_csv(i, epoch, indi, pop_avg_fitness, last_id):
+	with open(f'Results/uniform/{WIDTH}x{LENGTH}unit/{NUM_SENSORS}sensors/results_{epoch}.csv', 'a', newline='') as csv_file:
+		fieldnames = ['gen', 'energy', 'active_sensors', 'd_sink_node', 'weights', 'fitness', 'avg_fitness']
+		writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+		writer.writerow({
+			'gen': i,
+			'energy': indi.f_raw[0],
+			'active_sensors': indi.f_raw[1],
+			'd_sink_node': indi.f_raw[2],
+			'weights': indi.lambdas,
+			'fitness': indi.fitness,
+			'avg_fitness': pop_avg_fitness[i]
+		})
+		if i == last_id:
+			writer.writerow({
+				'gen': 'last',
+				'energy': indi.f_raw[0],
+				'active_sensors': indi.f_raw[1],
+				'd_sink_node': indi.f_raw[2],
+				'weights': indi.lambdas,
+				'fitness': indi.fitness,
+				'avg_fitness': pop_avg_fitness[last_id]
+			})
+
+
 if __name__ == "__main__":
 	POP_SIZE = 20
 	NEIGHBORHOOD_SIZE = 3
 	NUM_SENSORS = 300
 	NUM_SINK_NODES = 1
-	NUM_GENERATION = 50000
+	NUM_GENERATION = 30000
 	LENGTH, WIDTH = 1000, 50
 	NUM_EPOCH = 5
 
@@ -23,6 +49,12 @@ if __name__ == "__main__":
 	
 	# Run
 	for epoch in range(NUM_EPOCH):
+
+		with open(f'Results/uniform/{WIDTH}x{LENGTH}unit/{NUM_SENSORS}sensors/results_{epoch}.csv', 'w', newline='') as csv_file:
+			fieldnames = ['gen', 'energy', 'active_sensors', 'd_sink_node', 'weights', 'fitness', 'avg_fitness']
+			writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+			writer.writeheader()
+	
 		population = model.Population(POP_SIZE,NEIGHBORHOOD_SIZE,NUM_SENSORS,sensors_positions,NUM_SINK_NODES,sink_nodes_positions)
 
 		best_indi_fitness = []
@@ -32,43 +64,25 @@ if __name__ == "__main__":
 		with open(f'Results/uniform/{WIDTH}x{LENGTH}unit/{NUM_SENSORS}sensors/first_solutions_{epoch}.pickle','wb') as file:
 			pickle.dump(first_solutions,file)
 
-		with open(f'Results/uniform/{WIDTH}x{LENGTH}unit/{NUM_SENSORS}sensors/results_{epoch}.csv', 'w', newline='') as csv_file:
-			# Define column names
-			fieldnames = ['gen', 'energy', 'active_sensors', 'd_sink_node', 'weights', 'fitness', 'avg_fitness']
-			writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-			
-			# Write header
-			writer.writeheader()
-			
-			# Loop through generations
-			for i in range(NUM_GENERATION):
-				pop_fitness = [indi.fitness for indi in population.pop]  
-				population.reproduct()
-				f = []
-				for indi in population.pop:
-					f.append(copy.deepcopy(indi.f))
-				objectives_by_generations.append(f)
-				best = sorted(population.pop, key=lambda x: x.fitness)[-1]
-				best_indi_fitness.append(best.fitness)
-				pop_avg_fitness.append(np.mean(pop_fitness))
-				
-				if i % 100 == 0:
-					print(i / NUM_GENERATION * 100, '%')
-		
-					# Write data to CSV
-					writer.writerow({
-						'gen': i,
-						# raw objective values, not fitness
-						'energy': best.f[0],
-						'active_sensors': best.num_sensors,
-						'd_sink_node': best.f[2],
-						'weights': best.lambdas,
-						'fitness': best_indi_fitness[i],
-						'avg_fitness': pop_avg_fitness[i]
-					})
+		for i in range(NUM_GENERATION):
+			pop_fitness = [indi.fitness for indi in population.pop]	
+			population.reproduct()
+			f = []
+			for indi in population.pop:
+				f.append(copy.deepcopy(indi.f))
+			objectives_by_generations.append(f)
+			best = sorted(population.pop,key= lambda x:x.fitness)[-1]
+			best_indi_fitness.append(best.fitness)
+			pop_avg_fitness.append(np.mean(pop_fitness))
+			external_pop = population.EP
 
-		last_solutions = [indi.solution for indi in population.pop]
+			if(i%100==0):
+				print(i/NUM_GENERATION*100,'%')
+				for indi in population.EP:
+					# print(indi)
+					write_to_csv(i, epoch, indi, pop_avg_fitness, NUM_GENERATION-1)
 		
+		last_solutions = [indi.solution for indi in population.pop]		
 		# Change file name everytime!
 		with open(f'Results/uniform/{WIDTH}x{LENGTH}unit/{NUM_SENSORS}sensors/last_solutions_{epoch}.pickle','wb') as file:
 			pickle.dump(last_solutions,file)
