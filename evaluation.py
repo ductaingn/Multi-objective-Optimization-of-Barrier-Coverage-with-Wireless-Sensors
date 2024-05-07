@@ -1,3 +1,4 @@
+import csv
 import model
 import numpy as np
 import matplotlib.pyplot as plt
@@ -31,20 +32,41 @@ if __name__ == "__main__":
 		with open(f'Results/uniform/{WIDTH}x{LENGTH}unit/{NUM_SENSORS}sensors/first_solutions_{epoch}.pickle','wb') as file:
 			pickle.dump(first_solutions,file)
 
-		for i in range(NUM_GENERATION):
-			pop_fitness = [indi.fitness for indi in population.pop]	
-			population.reproduct()
-			f = []
-			for indi in population.pop:
-				f.append(copy.deepcopy(indi.f))
-			objectives_by_generations.append(f)
-			best = sorted(population.pop,key= lambda x:x.fitness)[-1]
-			best_indi_fitness.append(best.fitness)
-			pop_avg_fitness.append(np.mean(pop_fitness))
-
-			if(i%100==0):
-				print(i/NUM_GENERATION*100,'%')
+		with open(f'Results/uniform/{WIDTH}x{LENGTH}unit/{NUM_SENSORS}sensors/results_{epoch}.csv', 'w', newline='') as csv_file:
+			# Define column names
+			fieldnames = ['gen', 'energy', 'active_sensors', 'd_sink_node', 'weights', 'fitness', 'avg_fitness']
+			writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+			
+			# Write header
+			writer.writeheader()
+			
+			# Loop through generations
+			for i in range(NUM_GENERATION):
+				pop_fitness = [indi.fitness for indi in population.pop]  
+				population.reproduct()
+				f = []
+				for indi in population.pop:
+					f.append(copy.deepcopy(indi.f))
+				objectives_by_generations.append(f)
+				best = sorted(population.pop, key=lambda x: x.fitness)[-1]
+				best_indi_fitness.append(best.fitness)
+				pop_avg_fitness.append(np.mean(pop_fitness))
+				
+				if i % 100 == 0:
+					print(i / NUM_GENERATION * 100, '%')
 		
+					# Write data to CSV
+					writer.writerow({
+						'gen': i,
+						# raw objective values, not fitness
+						'energy': best.f[0],
+						'active_sensors': best.num_sensors,
+						'd_sink_node': best.f[2],
+						'weights': best.lambdas,
+						'fitness': best_indi_fitness[i],
+						'avg_fitness': pop_avg_fitness[i]
+					})
+
 		last_solutions = [indi.solution for indi in population.pop]
 		
 		# Change file name everytime!
@@ -56,4 +78,3 @@ if __name__ == "__main__":
 			pickle.dump(pop_avg_fitness,file)
 		with open(f'Results/uniform/{WIDTH}x{LENGTH}unit/{NUM_SENSORS}sensors/best_indi_fitness_{epoch}.pickle','wb') as file:
 			pickle.dump(best_indi_fitness,file)
-		
