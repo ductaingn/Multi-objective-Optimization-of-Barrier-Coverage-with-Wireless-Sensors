@@ -1,3 +1,4 @@
+import random
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 import copy
@@ -10,7 +11,7 @@ class Individual:
         self.lambdas = lambdas
         self.sensors_positions = sensors_positions
         self.sink_nodes_positions = sink_node_positions
-        self.mu = 0.99
+        self.mu = 1
         # first element of mem_FLS is max range 
         self.mem_FLS = []
         self.mem_BLS = []
@@ -161,11 +162,14 @@ class Individual:
     
 
     def update_utility(self, new_solution, ideal_point, nadir_point):
-        delta_i = self.compute_fitness(new_solution, ideal_point, nadir_point) - self.fitness
+        prev_fitness = self.fitness
+        delta_i = self.compute_fitness(new_solution, ideal_point, nadir_point) - prev_fitness
+
         if(delta_i>0.001):
-            return 1
+            self.mu = 1
         else:
-            return 0.99 + 0.01*delta_i/0.001
+            self.mu = 0.99 + 0.01*delta_i / 0.001
+        # print("update utility", self.mu, delta_i)
 
     def add_neighbor(self, individual):
         self.neighbor.append(individual)
@@ -327,15 +331,18 @@ class Population:
         '''
         # k is number of individuals in selection pool
         indi_index = list(np.random.choice(range(0,self.pop_size),size=k))
-        pool = [[self.pop[i],i] for i in indi_index]
-        # sort pool by sub-problem's index, take last element
-        return sorted(pool, key=lambda x:pool[1])[-1]
+        pool = [[self.pop[i], self.pop[i].mu, i] for i in indi_index]        
+        # sort pool by sub-problem's utility, take last element
+        return sorted(pool, key=lambda x: x[1])[-1]
     
     # copy first half of solution from individual, second half from breed to new_individual
     def crossover(self, individual:Individual, breed:Individual)->Individual:
-        cross_point = int(len(individual.solution)/2)
+        # random 2 point crossover
+        cross_point1 = random.randint(0,len(individual.solution)-1)
+        cross_point2 = random.randint(cross_point1,len(individual.solution)-1)
+
         new_individual = self.new_individual(individual)
-        for i in range(cross_point,len(individual.solution)):
+        for i in range(cross_point1,cross_point2):
             new_individual.solution[i] = copy.deepcopy(breed.solution[i])
 
         new_individual.compute_fitness(new_individual.solution, self.ideal_point, self.nadir_point)
@@ -399,7 +406,7 @@ class Population:
     
     def reproduct(self):
         # Select 1 sub-problem
-        sub_problem, sub_problem_index = self.selection()
+        sub_problem, _, sub_problem_index = self.selection()
 
         # Offspring generation 
         choosen_neighbor = np.random.choice(sub_problem.neighbor)
@@ -411,7 +418,7 @@ class Population:
         child.compute_fitness(child.solution, self.ideal_point, self.nadir_point)
 
         if(child.fitness > sub_problem.fitness):
-            # sub_problem.update_utility(child.solution, self.ideal_point, self.nadir_point)
+            sub_problem.update_utility(child.solution, self.ideal_point, self.nadir_point)
             sub_problem.solution = [copy.deepcopy(row) for row in child.solution]
             sub_problem.f = copy.deepcopy(child.f)
             sub_problem.fitness = child.fitness
