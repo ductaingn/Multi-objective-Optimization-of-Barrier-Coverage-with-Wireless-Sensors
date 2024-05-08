@@ -15,7 +15,7 @@ if __name__ == "__main__":
 	NUM_EPOCH = 5
 
 	# Load positions
-	dataset_no = 4
+	dataset_no = 0
 	with open(f'Datasets/uniform/{WIDTH}x{LENGTH}unit/{NUM_SENSORS}sensors/sensors_positions_{dataset_no}.pickle','rb') as file:
 		sensors_positions = pickle.load(file)
 	with open('Datasets/sink_nodes_positions.pickle','rb') as file:
