@@ -25,6 +25,32 @@ def Plot_solution(sensors_positions:list[list[float,float]], solution:list[list[
     ax.set_aspect('equal',adjustable='box')
     plt.show()
 
+def Plot_position(sensors_positions:list[list[float,float]], sink_nodes_positions:list[list[float,float]]):
+    '''
+    # Draw sensors and sink nodes' positions 
+    Draw sensors and sink nodes' positions
+    '''
+    fix, ax = plt.subplots()
+    sensors_x = []
+    sensors_y = []
+    for i in range(len(sensors_positions)):
+        sensors_x.append(sensors_positions[i][0])
+        sensors_y.append(sensors_positions[i][1])
+    
+    sink_nodes_x = []
+    sink_nodes_y = []
+    for i in range(len(sink_nodes_positions)):
+        sink_nodes_x.append(sink_nodes_positions[i][0])
+        sink_nodes_y.append(sink_nodes_positions[i][1])
+
+    ax.scatter(sensors_x,sensors_y,marker='x',c='red',label='Sensor')
+    ax.scatter(sink_nodes_x,sink_nodes_y,marker='*',c='blue',label='Sink Node',s=20)
+    ax.set_xlim(-10,1010)
+    ax.set_ylim(-100,100)
+    ax.set_aspect('equal',adjustable='box')
+    ax.legend()
+    plt.show()
+
 
 def Scatter_objectives(objectives_by_generations, num_generations):
     '''
@@ -56,7 +82,7 @@ def Scatter_objectives(objectives_by_generations, num_generations):
                 f.append([individual[0], individual[1], individual[2]])
             f = np.array(f)
             ax.scatter(f[:,0],f[:,1], f[:,2], c = color[int((i+1)/step)-1],label=f'Gen #{i+1}')
-    ax.view_init(azim=45,elev = 30)
+    # ax.view_init(azim=45,elev = 30)
     ax.set_xlabel('f_1')
     ax.set_ylabel('f_2')
     ax.set_zlabel('f_3')

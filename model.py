@@ -5,23 +5,21 @@ import copy
 
 # 1 Individual contains 1 sub-problem and 1 solution
 class Individual:
-    def __init__(self,lambdas, num_sensors, num_sink_nodes, sensors_positions, sink_node_positions, ideal_point, nadir_point, distances, solution = []) -> None:
+    def __init__(self,lambdas, num_sensors, num_sink_nodes, sensors_positions, sink_node_positions, ideal_point, nadir_point, distances, solution = None) -> None:
         self.num_sensors = num_sensors
         self.num_sink_nodes = num_sink_nodes
         self.lambdas = lambdas
         self.sensors_positions = sensors_positions
         self.sink_nodes_positions = sink_node_positions
         self.mu = 1
-        # first element of mem_FLS is max range 
-        self.mem_FLS = []
-        self.mem_BLS = []
         self.distances = distances
         
-        # Random solution
-        activate = np.random.choice([0,1],num_sensors)
-        srange = np.random.rand(num_sensors)
         self.solution = solution
-        if solution == []:
+        if self.solution == None:
+            # Random solution
+            self.solution = []
+            activate = np.random.choice([0,1],num_sensors)
+            srange = np.random.rand(num_sensors)
             for i in range(num_sensors):
                 if(activate[i]==1):
                     self.solution.append([activate[i],srange[i]])
@@ -34,8 +32,6 @@ class Individual:
         self.neighbor:list[Individual] = []
 
         self.distances = distances
-
-        self.preprocess_for_LS()
 
 
     def compute_fitness(self, solution, ideal_point, nadir_point):
@@ -143,23 +139,6 @@ class Individual:
 
         return
     
-    def preprocess_for_LS(self):
-        tmp_min_range = 1e9
-        # search in a solution for a gene with 2 genes before and after it having range = 0
-        for i in range(1,self.num_sensors-1):
-            fw = self.solution[i+1]
-            bw = self.solution[i-1]
-            if(self.solution[i][0]==1 and bw[0]==0 and fw[0]==0):
-                self.mem_FLS.append(i)
-            if(self.solution[i][0]==0 and bw[0]==1 and fw[0]==1):
-                if (bw[0] + fw[0]<tmp_min_range):
-                    tmp_min_range = bw[0] + fw[0]
-                    self.mem_BLS.insert(0, i)
-                else: self.mem_BLS.append(i)
-        # sort mem_FLS and mem_BLS in descending order of range
-        self.mem_FLS.sort(key=lambda x: self.solution[x][1], reverse=True)
-
-    
 
     def update_utility(self, new_solution, ideal_point, nadir_point):
         prev_fitness = self.fitness
@@ -198,7 +177,8 @@ class Population:
                 self.distances[i,j] = self.distances[j,i] = d
 
         for i in range(self.pop_size):
-            self.pop.append(Individual(self.lambdas[i], num_sensors, self.num_sink_nodes, sensors_positions, sink_nodes_positions, self.ideal_point, self.nadir_point, self.distances))
+            indi = Individual(self.lambdas[i], num_sensors, self.num_sink_nodes, sensors_positions, sink_nodes_positions, self.ideal_point, self.nadir_point, self.distances)
+            self.pop.append(indi)
 
         def find_neighbor():
             # max value for distance to neighbor
