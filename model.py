@@ -346,7 +346,6 @@ class Population:
                 neighbor.fitness = new_fitness
                 # neighbor.mu = neighbor.update_utility(individual.solution, self.ideal_point, self.nadir_point)
                 # if 1 solution updated, preprocess for LS again
-                neighbor.preprocess_for_LS()
     
     def update_EP(self, individual: Individual):
         new_EP = []
