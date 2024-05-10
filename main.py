@@ -4,52 +4,60 @@ import matplotlib.pyplot as plt
 import Plot
 import pickle
 import copy
+import sys
+from tqdm import tqdm
 
 if __name__ == "__main__":
 	POP_SIZE = 20
 	NEIGHBORHOOD_SIZE = 3
 	NUM_SENSORS = 100
 	NUM_SINK_NODES = 1
-	NUM_EVALUATION = 10000
-	# sensors_x = np.random.uniform(low=0,high=1000,size=(NUM_SENSORS))
-	# sensors_y = np.random.uniform(low=0,high=10,size=(NUM_SENSORS))
-	# sensors_positions = np.array([[sensors_x[i],sensors_y[i]] for i in range(NUM_SENSORS)])
-	# sensors_positions.sort(axis=0)
+	NUM_GENERATION = 30000
+	LENGTH, WIDTH = 1000, 50
 
-	# sink_nodes_x = np.random.uniform(low=0, high=1000, size=(NUM_SINK_NODES))
-	# sink_nodes_y = np.random.uniform(low=0, high=10,size=(NUM_SINK_NODES))
-	# sink_nodes_positions = [[sink_nodes_x[i],sink_nodes_y[i]] for i in range(NUM_SINK_NODES)]
-	with open('sensor_positions.pickle','rb') as file:
+	# Take in argument as epoch number for saving result file when run via bash script, default is 0
+	if(len(sys.argv)>1):
+		epoch = sys.argv[1]
+	else:
+		epoch = 0
+	# Load positions
+	dataset_no = 0
+	with open(f'Datasets/uniform/{WIDTH}x{LENGTH}unit/{NUM_SENSORS}sensors/sensors_positions_{dataset_no}.pickle','rb') as file:
 		sensors_positions = pickle.load(file)
-	with open('sink_nodes_positions.pickle','rb') as file:
+	with open('Datasets/sink_nodes_positions.pickle','rb') as file:
 		sink_nodes_positions = pickle.load(file)
-		
-	pop = model.Population(POP_SIZE,NEIGHBORHOOD_SIZE,NUM_SENSORS,sensors_positions,NUM_SINK_NODES,sink_nodes_positions)
-
-	fitness = []
-	generations = []
-	for i in range(NUM_EVALUATION):
-		pop.reproduct()
-		f = []
-		for indi in pop.pop:
-			f.append(copy.deepcopy(indi.f))
-		generations.append(f)
-		best = sorted(pop.pop,key= lambda x:x.fitness)[-1]
-		fitness.append(best.fitness)
-		if(i%100==0):
-			print(i/NUM_EVALUATION*100,'%')
 	
-	with open('generations.pickle','wb') as file:
-		pickle.dump(generations,file)
-	with open('result.pickle','wb') as file:
-		pickle.dump(pop,file)
-	with open('sensor_positions.pickle','wb') as file:
-		pickle.dump(sensors_positions,file)
-	with open('sink_nodes_positions.pickle','wb') as file:
-		pickle.dump(sink_nodes_positions,file)
+	# Run
+	population = model.Population(POP_SIZE,NEIGHBORHOOD_SIZE,NUM_SENSORS,sensors_positions,NUM_SINK_NODES,sink_nodes_positions)
 
-	Plot.Plot_solution(pop.pop[0].sensors_positions, pop.pop[0].solution)
+	best_indi_fitness = []
+	pop_avg_fitness = []
+	objectives_by_generations = []
+	first_solutions = [indi.solution for indi in population.pop]
+	with open(f'Results/uniform/{WIDTH}x{LENGTH}unit/{NUM_SENSORS}sensors/dataset_{dataset_no}/first_solutions_{epoch}.pickle','wb') as file:
+		pickle.dump(first_solutions,file)
 
-	plt.plot(fitness)
-	plt.show()
-	print()
+	for i in tqdm(range(NUM_GENERATION)):
+		pop_fitness = [indi.fitness for indi in population.pop]	
+		population.reproduct()
+		f = []
+		for indi in population.pop:
+			f.append(copy.deepcopy(indi.f))
+		objectives_by_generations.append(f)
+		best = sorted(population.pop,key= lambda x:x.fitness)[-1]
+		best_indi_fitness.append(best.fitness)
+		pop_avg_fitness.append(np.mean(pop_fitness))
+
+	
+	last_solutions = [indi.solution for indi in population.pop]
+	
+	# Change file name everytime!
+	with open(f'Results/uniform/{WIDTH}x{LENGTH}unit/{NUM_SENSORS}sensors/dataset_{dataset_no}/last_solutions_{epoch}.pickle','wb') as file:
+		pickle.dump(last_solutions,file)
+	with open(f'Results/uniform/{WIDTH}x{LENGTH}unit/{NUM_SENSORS}sensors/dataset_{dataset_no}/objectives_by_generations_{epoch}.pickle','wb') as file:
+		pickle.dump(objectives_by_generations,file)
+	with open(f'Results/uniform/{WIDTH}x{LENGTH}unit/{NUM_SENSORS}sensors/dataset_{dataset_no}/pop_avg_fitness_{epoch}.pickle','wb') as file:
+		pickle.dump(pop_avg_fitness,file)
+	with open(f'Results/uniform/{WIDTH}x{LENGTH}unit/{NUM_SENSORS}sensors/dataset_{dataset_no}/best_indi_fitness_{epoch}.pickle','wb') as file:
+		pickle.dump(best_indi_fitness,file)
+		
