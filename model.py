@@ -343,7 +343,7 @@ class Population:
             new_sol = self.new_individual(neighbor)
             new_fitness = new_sol.compute_fitness(individual.solution, self.ideal_point, self.nadir_point)
             if(new_fitness>neighbor.fitness):
-                neighbor.mu = neighbor.update_utility(new_fitness)
+                neighbor.update_utility(new_fitness)
                 neighbor.solution = [copy.deepcopy(row) for row in individual.solution]
                 neighbor.f = copy.deepcopy(individual.f)
                 neighbor.fitness = new_fitness
