@@ -110,7 +110,9 @@ class Individual:
         while(i<length-1):
             if(distance[active_indx[i],active_indx[i-1]] + self.solution[active_indx[i]][1] <= self.solution[active_indx[i-1]][1]
                or
-               distance[active_indx[i],active_indx[i+1]] + self.solution[active_indx[i]][1] <= self.solution[active_indx[i+1]][1]):
+               distance[active_indx[i],active_indx[i+1]] + self.solution[active_indx[i]][1] <= self.solution[active_indx[i+1]][1]
+               or 
+               distance[active_indx[i-1],active_indx[i+1]] <= self.solution[active_indx[i-1]][1] + self.solution[active_indx[i+1]][1]):
                 self.solution[active_indx[i]] = [0,0]
                 active_indx.pop(i)
                 length-=1
@@ -140,9 +142,9 @@ class Individual:
         return
     
 
-    def update_utility(self, new_solution, ideal_point, nadir_point):
+    def update_utility(self, new_fitness):
         prev_fitness = self.fitness
-        delta_i = self.compute_fitness(new_solution, ideal_point, nadir_point) - prev_fitness
+        delta_i = new_fitness - prev_fitness
 
         if(delta_i>0.001):
             self.mu = 1
@@ -341,11 +343,10 @@ class Population:
             new_sol = self.new_individual(neighbor)
             new_fitness = new_sol.compute_fitness(individual.solution, self.ideal_point, self.nadir_point)
             if(new_fitness>neighbor.fitness):
+                neighbor.update_utility(new_fitness)
                 neighbor.solution = [copy.deepcopy(row) for row in individual.solution]
                 neighbor.f = copy.deepcopy(individual.f)
                 neighbor.fitness = new_fitness
-                # neighbor.mu = neighbor.update_utility(individual.solution, self.ideal_point, self.nadir_point)
-                # if 1 solution updated, preprocess for LS again
     
     def update_EP(self, individual: Individual):
         new_EP = []
@@ -397,16 +398,12 @@ class Population:
         child.compute_fitness(child.solution, self.ideal_point, self.nadir_point)
 
         if(child.fitness > sub_problem.fitness):
-            sub_problem.update_utility(child.solution, self.ideal_point, self.nadir_point)
+            sub_problem.update_utility(child.fitness)
             sub_problem.solution = [copy.deepcopy(row) for row in child.solution]
             sub_problem.f = copy.deepcopy(child.f)
             sub_problem.fitness = child.fitness
-            # sub_problem.compute_fitness(sub_problem.solution, self.ideal_point, self.nadir_point)
 
         self.local_search(sub_problem_index)
         self.update_neighbor_solution(sub_problem)
 
-        # Update EP
-        # self.update_EP(sub_problem)
-        
         return
