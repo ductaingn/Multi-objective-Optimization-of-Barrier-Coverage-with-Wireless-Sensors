@@ -408,6 +408,7 @@ class Population:
                         distances[index] += (next_obj - prev_obj)/(f_max-f_min)
                 
                 sorted_index = np.flip(np.argsort(distances))
+
                 for i in range(self.pop_size-count):
                     new_pop[i+count].solution = [copy.deepcopy(row) for row in pool[sorted_index[i]].solution]
                     new_pop[i+count].f = copy.deepcopy(pool[sorted_index[i]].f)
