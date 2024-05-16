@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
-import model
+import MOEAD
 import pickle
 
 def Plot_solution(sensors_positions:list[list[float,float]], solution:list[list[int,float]]):
@@ -124,4 +124,26 @@ def Plot_fitness(num_sensors, num_results, name_pattern='best_indi_fitness', nam
     ax.set_ylabel('Fitness')
     ax.set_ylim(1,10)
     plt.title(f'{name_pattern} Mean and Standard deviation, {num_sensors} sensors, {distribution} distribution')
+    plt.show()
+
+def Compare_objectives(moead_objectives,nsga2_objectives):
+    '''
+    # Compare output of MOEAD and NSGA2
+    '''
+
+    fig = plt.figure()
+    # ax = fig.add_subplot(projection='3d')
+    ax = fig.add_subplot(projection='3d')
+    moead_objectives = np.array(moead_objectives)
+    nsga2_objectives = np.array(nsga2_objectives)
+
+
+    ax.scatter(moead_objectives[:,0],moead_objectives[:,1],moead_objectives[:,2],c='red',label='MOEA/D')
+    ax.scatter(nsga2_objectives[:,0],nsga2_objectives[:,1],nsga2_objectives[:,2],c='blue',label='NSGA-II')
+
+    ax.set_xlabel('f_1')
+    ax.set_ylabel('f_2')
+    ax.set_zlabel('f_3')
+    plt.legend()
+    plt.title('Objective funtions value over generations')
     plt.show()

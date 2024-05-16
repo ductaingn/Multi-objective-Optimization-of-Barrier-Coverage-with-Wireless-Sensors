@@ -1,4 +1,4 @@
-import model
+import MOEAD
 import numpy as np
 import matplotlib.pyplot as plt
 import Plot
@@ -23,7 +23,7 @@ if __name__ == "__main__":
 	
 	# Run
 	for epoch in range(NUM_EPOCH):
-		population = model.Population(POP_SIZE,NEIGHBORHOOD_SIZE,NUM_SENSORS,sensors_positions,NUM_SINK_NODES,sink_nodes_positions)
+		population = MOEAD.Population(POP_SIZE,NEIGHBORHOOD_SIZE,NUM_SENSORS,sensors_positions,NUM_SINK_NODES,sink_nodes_positions)
 
 		best_indi_fitness = []
 		pop_avg_fitness = []
@@ -37,7 +37,7 @@ if __name__ == "__main__":
 			population.reproduct()
 			f = []
 			for indi in population.pop:
-				f.append(copy.deepcopy(indi.f))
+				f.append(copy.deepcopy(indi.f_norm))
 			objectives_by_generations.append(f)
 			best = sorted(population.pop,key= lambda x:x.fitness)[-1]
 			best_indi_fitness.append(best.fitness)
