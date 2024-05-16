@@ -1,4 +1,4 @@
-import model
+import MOEAD
 import numpy as np
 import matplotlib.pyplot as plt
 import Plot
@@ -8,7 +8,7 @@ import sys
 from tqdm import tqdm
 
 if __name__ == "__main__":
-	POP_SIZE = 20
+	POP_SIZE = 36
 	NEIGHBORHOOD_SIZE = 3
 	NUM_SENSORS = 100
 	NUM_SINK_NODES = 1
@@ -18,17 +18,18 @@ if __name__ == "__main__":
 	# Take in argument as epoch number for saving result file when run via bash script, default is 0
 	if(len(sys.argv)>1):
 		epoch = sys.argv[1]
+		dataset_no = sys.argv[2]
 	else:
 		epoch = 0
-	# Load positions
-	dataset_no = 0
+		# Load positions
+		dataset_no = 0
 	with open(f'Datasets/uniform/{WIDTH}x{LENGTH}unit/{NUM_SENSORS}sensors/sensors_positions_{dataset_no}.pickle','rb') as file:
 		sensors_positions = pickle.load(file)
 	with open('Datasets/sink_nodes_positions.pickle','rb') as file:
 		sink_nodes_positions = pickle.load(file)
 	
 	# Run
-	population = model.Population(POP_SIZE,NEIGHBORHOOD_SIZE,NUM_SENSORS,sensors_positions,NUM_SINK_NODES,sink_nodes_positions)
+	population = MOEAD.Population(POP_SIZE,NEIGHBORHOOD_SIZE,NUM_SENSORS,sensors_positions,NUM_SINK_NODES,sink_nodes_positions)
 
 	best_indi_fitness = []
 	pop_avg_fitness = []
