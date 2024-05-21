@@ -2,6 +2,7 @@ import random
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 import copy
+import time
 
 # 1 Individual contains 1 sub-problem and 1 solution
 class Individual:
@@ -51,13 +52,12 @@ class Individual:
         '''
         Check if this Individual dominates another Individual
         '''
-        dominate = [False,False,False]
-        for i in range(3):
-            if(self.f[i]<=competition_obj[i]):
-                dominate[i] = True
+        smaller_or_equal = np.array(self.f) <= np.array(competition_obj)
+        smaller = np.array(self.f) < np.array(competition_obj)
+        if np.all(smaller_or_equal) and np.any(smaller):
+            return True
 
-        return all(dominate)
-    
+        return False
     
     def mutation(self):
         active_sensor_index = []
@@ -256,10 +256,9 @@ class Population:
     def local_search(self, k):
         if(k<self.pop_size-1):
             # idea: sub-problem k+1 assigns smaller weight to f2 
-            self.forward_local_search(self.pop[k+1])
+            self.forward_local_search(self.pop[k])
         if(k>0):
-            self.backward_local_search(self.pop[k-1])
-        
+            self.backward_local_search(self.pop[k])   
 
 
     def selection(self,num_indi=10, k=16):
@@ -274,21 +273,62 @@ class Population:
     
     # copy first half of solution from individual, second half from breed to new_individual
     def crossover(self, individual:Individual, breed:Individual)->Individual:
-        # random 2 point crossover
-        cross_point1 = random.randint(0,len(individual.solution)-1)
-        cross_point2 = random.randint(cross_point1,len(individual.solution)-1)
+        # random 1 point crossover
+        cross_point = random.randint(0,len(individual.solution)-1)
 
         new_individual = self.new_individual(individual)
         all_off = True
-        for i in range(cross_point1,cross_point2):
-            new_individual.solution[i] = copy.deepcopy(breed.solution[i])
-            if(new_individual.solution[i][0]==1):
-                all_off = False
-        if(all_off):
-            new_individual.solution[np.random.randint(0,self.num_sensors)][0] = 1
+        while (all_off==True):
+            for i in range(self.num_sensors):
+                if(i>=cross_point):
+                    new_individual.solution[i] = copy.deepcopy(breed.solution[i])
+                if(new_individual.solution[i][0]==1):
+                    all_off = False
+
         new_individual.compute_objectives(new_individual.solution)
         return new_individual
     
+    def uniform_crossover(self, parent1:Individual, parent2:Individual)->list[Individual,Individual]:
+        rand = np.random.uniform(0,1,self.num_sensors)
+
+        child1 , child2 = self.new_individual(parent1), self.new_individual(parent2)
+        all_off = [True,True]
+        for i in range(self.num_sensors):
+            if(rand[i]>=0.5):
+                child1.solution[i] = copy.deepcopy(parent2.solution[i])
+                child2.solution[i] = copy.deepcopy(parent1.solution[i])
+            if(child1.solution[i][0]==1):
+                all_off[0] = False
+            if(child2.solution[i][0]==1):
+                all_off[1] = False
+
+        if(any(all_off)):
+            child1, child2 = self.uniform_crossover(parent1,parent2)
+        child1.compute_objectives(child1.solution)
+        child2.compute_objectives(child2.solution)
+
+        return child1, child2
+    
+    def two_point_crossover(self, parent1:Individual, parent2:Individual)->list[Individual,Individual]:
+        cross_point = np.random.randint(1,self.num_sensors-1,2)
+        cross_point.sort()
+        child1 , child2 = self.new_individual(parent1), self.new_individual(parent2)
+        all_off = [True,True]
+        for i in range(0,self.num_sensors):
+            if(i>=cross_point[0] and i<=cross_point[1]):
+                child1.solution[i] = copy.deepcopy(parent2.solution[i])
+                child2.solution[i] = copy.deepcopy(parent1.solution[i])
+            if(child1.solution[i][0]==1):
+                all_off[0] = False
+            if(child2.solution[i][0]==1):
+                all_off[1] = False
+
+        if(any(all_off)):
+            child1, child2 = self.two_point_crossover(parent1,parent2)
+        child1.compute_objectives(child1.solution)
+        child2.compute_objectives(child2.solution)
+
+        return child1, child2
     
     def update_EP(self, individual: Individual):
         new_EP = []
@@ -327,36 +367,43 @@ class Population:
         new_children_size = int(self.pop_size/4)
 
         # Select sub-problem  
-        pool_size = int(self.pop_size/3)
+        pool_size = self.pop_size
         rand = np.random.permutation(self.pop_size)[:pool_size]
-        parrent = [self.pop[i] for i in rand]
         for i in range(int(new_children_size)):
-            # Offspring generation 
-            child = self.crossover(parrent[i], parrent[-i])
-            # Mutation
+            # # Offspring generation 
+            # child1, child2 = self.two_point_crossover(self.pop[rand[i]], self.pop[rand[-i]])
+            # # Mutation
+            # child1.mutation()
+            # child2.mutation()
+            # # Repair solution
+            # child1.repair_solution()
+            # child2.repair_solution()
+            # child1.compute_objectives(child1.solution)
+            # child2.compute_objectives(child2.solution)
+
+            # new_children.append(child1)
+            # new_children.append(child2)
+            child, _ = self.uniform_crossover(self.pop[rand[i]],self.pop[rand[-i]])
             child.mutation()
-            # Repair solution
             child.repair_solution()
             child.compute_objectives(child.solution)
-
             new_children.append(child)
-
         # Assume the id of individual in pool is followed by self.pop append new_children 
         pool:list[Individual] = self.pop + new_children
         
         # Ranking
             # domination_sets[i] is a list, containts the ids of which individual i dominates
-        domination_sets = []
+        domination_sets = [[] for i in range(len(pool))]
             # domination_counts[i] a number, containts the numbers of individual dominate i
         domination_counts = np.zeros(len(pool))
         for i in range(len(pool)):
-            current_domination_set = []
-            for j in range(len(pool)):
-                if(i!=j and pool[i].dominate(pool[j].f)):
-                    current_domination_set.append(j)
-                if(i!=j and pool[j].dominate(pool[i].f)):
+            for j in range(i+1,len(pool)):
+                if(pool[i].dominate(pool[j].f)):
+                    domination_sets[i].append(j)
+                    domination_counts[j]+=1
+                elif(pool[j].dominate(pool[i].f)):
+                    domination_sets[j].append(i)
                     domination_counts[i]+=1
-            domination_sets.append(current_domination_set)
 
         # Contains index of solution in pool, eg: pareto_front = [[0,2,3],[4,1]] means that individuals pool[0], pool[2], pool[3] are in rank 0, pool[4] and pool[1] ar in rank 1
         pareto_front:list[list[int]] = []  
@@ -412,6 +459,7 @@ class Population:
                 for i in range(self.pop_size-count):
                     new_pop[i+count].solution = [copy.deepcopy(row) for row in pool[sorted_index[i]].solution]
                     new_pop[i+count].f = copy.deepcopy(pool[sorted_index[i]].f)
+                break
 
         self.pop = new_pop
         return
