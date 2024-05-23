@@ -91,6 +91,17 @@ class Individual:
                 active_indx.append(i)
 
         # Coverage requirement
+        if(len(active_indx)<1):
+            random_active = np.random.randint(0,self.num_sensors)
+            self.solution[random_active][0] = 1
+            active_indx.append(random_active)
+
+        if(len(active_indx)<2):
+            self.solution[active_indx[0]][1] = max(
+                np.sqrt((self.sensors_positions[active_indx[0]][0]-0)**2 + (self.sensors_positions[active_indx[0]][1]-0)**2),
+                np.sqrt((self.sensors_positions[active_indx[0]][0]-barier_length)**2 + (self.sensors_positions[active_indx[0]][1]-0)**2))
+            return
+        
         self.solution[active_indx[0]][1] = max(
             np.sqrt((self.sensors_positions[active_indx[0]][0]-0)**2 + (self.sensors_positions[active_indx[0]][1]-0)**2),
             distance[active_indx[0], active_indx[1]]/2
@@ -212,17 +223,11 @@ class Population:
     # Genrate uniformly spread weighted vectors lambda 
     def generate_lambdas(self):
         weights = []
-        # 36 weight vectors
-        for i in range(1,9):
-            for j in range(i+1,10):
-                weights.append([i,j-i,10-j])
-        res = []
-        for i in range(int(self.pop_size/2)):
-            res.append(weights[i])
-            res.append(weights[-i-1])
-        res = np.array(res)
-        indx = np.lexsort((res[:,2],res[:,0],res[:,1]))
-        return res[indx]/10
+        lambdas = np.random.uniform(0,1,(self.pop_size,3))
+        for i in range(self.pop_size):
+            weights.append([lambdas[i,j]/sum(lambdas[i]) for j in range(3)])
+
+        return weights
     
   
     def forward_local_search(self, individual:Individual):
@@ -330,8 +335,8 @@ class Population:
         new_individual = self.new_individual(individual)
         for i in range(cross_point1,cross_point2):
             new_individual.solution[i] = copy.deepcopy(breed.solution[i])
-
-        new_individual.compute_fitness(new_individual.solution, self.ideal_point, self.nadir_point)
+            
+        new_individual.repair_solution()
         return new_individual
 
     def update_utility(self, individuals:list[Individual]):
@@ -388,28 +393,34 @@ class Population:
             self.ideal_point[i] = min(self.ideal_point[i], individual.f_norm[i])
             self.nadir_point[i] = max(self.nadir_point[i], individual.f_norm[i])
 
-    
+    def update_ideal_point(self):
+        for individual in self.pop:
+            for i in range(3):
+                self.ideal_point[i] = min(self.ideal_point[i], individual.f[i])
+                self.nadir_point[i] = max(self.nadir_point[i], individual.f[i])
+
     def reproduct(self):
-        # Select 1 sub-problem
-        sub_problem, _, sub_problem_index = self.selection()
+        for i in range(self.pop_size):
+            # Select pool_size sub-problem
+            sub_problem, sub_problem_index = self.pop[i], i
 
-        # Offspring generation 
-        choosen_neighbor = np.random.choice(sub_problem.neighbor)
-        child = self.crossover(sub_problem, choosen_neighbor)
-        # Mutation
-        child.mutation()
-        # Repair solution
-        child.repair_solution()
-        child.compute_fitness(child.solution, self.ideal_point, self.nadir_point)
+            # Offspring generation 
+            choosen_neighbor = np.random.choice(sub_problem.neighbor)
+            child = self.crossover(sub_problem, choosen_neighbor)
+            # Mutation
+            child.mutation()
+            # Repair solution
+            child.repair_solution()
+            child.compute_fitness(child.solution, self.ideal_point, self.nadir_point)
 
-        if(child.fitness > sub_problem.fitness):
-            sub_problem.update_utility(child.fitness)
-            sub_problem.solution = [copy.deepcopy(row) for row in child.solution]
-            sub_problem.f_norm = copy.deepcopy(child.f_norm)
-            sub_problem.fitness = child.fitness
-            sub_problem.f = copy.deepcopy(child.f)
+            if(child.fitness > sub_problem.fitness):
+                sub_problem.update_utility(child.fitness)
+                sub_problem.solution = [copy.deepcopy(row) for row in child.solution]
+                sub_problem.f_norm = copy.deepcopy(child.f_norm)
+                sub_problem.fitness = child.fitness
+                sub_problem.f = copy.deepcopy(child.f)
 
-        self.local_search(sub_problem_index)
-        self.update_neighbor_solution(sub_problem)
-
+            self.local_search(sub_problem_index)
+            self.update_neighbor_solution(sub_problem)
+        self.update_ideal_point()
         return
