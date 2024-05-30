@@ -271,7 +271,7 @@ def Compare_objectives_Plotly(moead_objectives,nsga2_objectives):
                 color='Algorithm')
     fig.update_traces(marker=dict(size=3))
     fig.show()
-    # fig.write_html('scene.html')
+    fig.write_html('Compare objectives.html')
 
 def Plot_hyper_volume(objectives_by_generations):
     '''
@@ -323,6 +323,9 @@ def Compare_Set_Coverage():
     plt.plot([100,300,700],moead_dom_nsga2,label='MOEA/D > NSGA2')
     plt.plot([100,300,700],nsga2_dom_moead,label='NSGA2 > MOEA/D')
     plt.legend()
+    plt.xlabel('Number of sensors')
+    plt.ylabel('Set coverage')
+    plt.title('Compare Set coverage')
     plt.show()
 
 def Compare_Distance_to_Reference():
@@ -349,5 +352,8 @@ def Compare_Distance_to_Reference():
 
     plt.plot([100,300,700],d_ref_moead,label='MOEA/D')
     plt.plot([100,300,700],d_ref_nsga2,label='NSGA2/D')
+    plt.xlabel('Number of sensors')
+    plt.ylabel('Distance')
+    plt.title('Compare Distance to Reference point')
     plt.legend()
     plt.show()
