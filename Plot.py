@@ -320,8 +320,8 @@ def Compare_Set_Coverage():
         nsga2_dom_moead.append(count_nsga2_dom/len(nsga2_last_gen))
     
     plt.ylim((0,1))
-    plt.plot([100,300,700],moead_dom_nsga2,label='MOEA/D > NSGA2')
-    plt.plot([100,300,700],nsga2_dom_moead,label='NSGA2 > MOEA/D')
+    plt.plot([100,300,700],moead_dom_nsga2,label='MOEA/D > NSGA2',marker='*',ms=10)
+    plt.plot([100,300,700],nsga2_dom_moead,label='NSGA2 > MOEA/D',marker='*',ms=10)
     plt.legend()
     plt.xlabel('Number of sensors')
     plt.ylabel('Set coverage')
@@ -350,8 +350,8 @@ def Compare_Distance_to_Reference():
         d_ref_moead.append(current_d_ref_moead)
         d_ref_nsga2.append(current_d_ref_nsga2)
 
-    plt.plot([100,300,700],d_ref_moead,label='MOEA/D')
-    plt.plot([100,300,700],d_ref_nsga2,label='NSGA2/D')
+    plt.plot([100,300,700],d_ref_moead,label='MOEA/D',marker='*',ms=10)
+    plt.plot([100,300,700],d_ref_nsga2,label='NSGA2/D',marker='*',ms=10)
     plt.xlabel('Number of sensors')
     plt.ylabel('Distance')
     plt.title('Compare Distance to Reference point')

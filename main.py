@@ -11,7 +11,7 @@ from tqdm import tqdm
 if __name__ == "__main__":
 	POP_SIZE = 200
 	NEIGHBORHOOD_SIZE = 3
-	NUM_SENSORS = 700
+	NUM_SENSORS = 100
 	NUM_SINK_NODES = 1
 	NUM_GENERATION = 500
 	LENGTH, WIDTH = 1000, 50

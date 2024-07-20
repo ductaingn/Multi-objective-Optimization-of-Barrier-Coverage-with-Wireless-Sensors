@@ -371,18 +371,7 @@ class Population:
         rand = np.random.permutation(self.pop_size)[:pool_size]
         for i in range(int(new_children_size)):
             # # Offspring generation 
-            # child1, child2 = self.two_point_crossover(self.pop[rand[i]], self.pop[rand[-i]])
-            # # Mutation
-            # child1.mutation()
-            # child2.mutation()
-            # # Repair solution
-            # child1.repair_solution()
-            # child2.repair_solution()
-            # child1.compute_objectives(child1.solution)
-            # child2.compute_objectives(child2.solution)
-
-            # new_children.append(child1)
-            # new_children.append(child2)
+            
             child, _ = self.uniform_crossover(self.pop[rand[i]],self.pop[rand[-i]])
             child.mutation()
             child.repair_solution()
