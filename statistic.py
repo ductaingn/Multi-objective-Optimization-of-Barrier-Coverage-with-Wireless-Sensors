@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pickle
 import copy
-import model
+import MOEAD
 import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
@@ -23,7 +23,7 @@ if __name__ == "__main__":
         with open('Datasets/sink_nodes_positions.pickle', 'rb') as file:
             sink_nodes_positions = pickle.load(file)
 
-        pop = model.Population(POP_SIZE, NEIGHBORHOOD_SIZE, NUM_SENSORS, sensors_positions, NUM_SINK_NODES,
+        pop = MOEAD.Population(POP_SIZE, NEIGHBORHOOD_SIZE, NUM_SENSORS, sensors_positions, NUM_SINK_NODES,
                                sink_nodes_positions)
 
         fitness = []
